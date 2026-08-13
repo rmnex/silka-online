@@ -102,6 +102,7 @@ td{padding:7px 8px;border-bottom:1px solid var(--border);}
   <button data-sec="dashboard" class="active">Dashboard</button>
   <button data-sec="transaksi">Transaksi</button>
   <button data-sec="unitusaha">Unit Usaha</button>
+  <button data-sec="akun">Akun</button>
   <button data-sec="laporan">Laporan</button>
 </nav>
 <main>
@@ -141,7 +142,16 @@ td{padding:7px 8px;border-bottom:1px solid var(--border);}
               <option value="keluar">Kas Keluar (Beban)</option>
             </select>
           </div>
+          <div class="field"><label>Akun</label><select id="txAkun" required></select></div>
+        </div>
+        <div class="grid cols2">
           <div class="field"><label>Jumlah (Rp)</label><input type="number" id="txJumlah" min="0" step="1" required></div>
+          <div class="field"><label>Metode</label>
+            <select id="txMetode">
+              <option value="Kas">Kas</option>
+              <option value="Transfer">Transfer Bank</option>
+            </select>
+          </div>
         </div>
         <div class="field" style="margin-bottom:14px"><label>Keterangan</label><input type="text" id="txKet" placeholder="cth: Setoran tagihan air RT 03"></div>
         <div class="row-actions">
@@ -175,13 +185,55 @@ td{padding:7px 8px;border-bottom:1px solid var(--border);}
     </div>
   </div>
 
+  <!-- AKUN -->
+  <div class="section" id="sec-akun">
+    <div class="card">
+      <h2>Tambah Akun</h2>
+      <form id="akunForm">
+        <input type="hidden" id="akunId">
+        <div class="grid cols2">
+          <div class="field"><label>Kode Akun</label><input type="text" id="akunKode" placeholder="cth: 4102" required></div>
+          <div class="field"><label>Nama Akun</label><input type="text" id="akunNama" placeholder="cth: Pendapatan Sewa" required></div>
+        </div>
+        <div class="field" style="margin-bottom:14px"><label>Tipe</label>
+          <select id="akunTipe">
+            <option value="aset">Aset</option>
+            <option value="kewajiban">Kewajiban</option>
+            <option value="ekuitas">Ekuitas</option>
+            <option value="pendapatan">Pendapatan</option>
+            <option value="beban">Beban</option>
+          </select>
+        </div>
+        <div class="row-actions">
+          <button type="submit" class="btn">Simpan</button>
+          <button type="button" class="btn secondary" id="akunCancelEdit" style="display:none">Batal Edit</button>
+        </div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Daftar Akun</h2>
+      <div id="akunTableWrap"></div>
+    </div>
+  </div>
+
   <!-- LAPORAN -->
   <div class="section" id="sec-laporan">
     <div class="card">
-      <h2>Laporan Laba Rugi</h2>
+      <h2>Laporan Keuangan</h2>
+      <div class="grid cols2" style="margin-bottom:12px">
+        <div class="field"><label>Jenis Laporan</label>
+          <select id="lapJenis">
+            <option value="labarugi">Laba Rugi</option>
+            <option value="neraca">Neraca</option>
+            <option value="aruskas">Arus Kas</option>
+            <option value="calk">CALK (Catatan atas Laporan Keuangan)</option>
+          </select>
+        </div>
+        <div class="field"><label>Modal Awal BUMKA (Rp)</label><input type="number" id="lapModalAwal" min="0" step="1" value="0"></div>
+      </div>
       <div class="grid cols2" style="margin-bottom:12px">
         <div class="field"><label>Periode Dari</label><input type="date" id="lapDari"></div>
-        <div class="field"><label>Periode Sampai</label><input type="date" id="lapSampai"></div>
+        <div class="field"><label>Periode Sampai (posisi per tanggal ini)</label><input type="date" id="lapSampai"></div>
       </div>
       <button class="btn" id="btnTampilLaporan">Tampilkan</button>
     </div>
@@ -248,7 +300,9 @@ async function showApp(){
   document.getElementById('appWrap').style.display = 'block';
   await ensureDefaultAkun();
   await loadAll();
+  await loadSettings();
   populateUnitSelects();
+  populateAkunSelect();
   document.getElementById('txTanggal').value = todayStr();
   document.getElementById('lapDari').value = monthStr()+'-01';
   document.getElementById('lapSampai').value = todayStr();
@@ -270,6 +324,20 @@ async function ensureDefaultAkun(){
   ];
   await sb.from('akun').insert(defaults);
 }
+
+/* ====== PENGATURAN (key-value sederhana) ====== */
+let SETTINGS = { modalAwal: 0 };
+async function loadSettings(){
+  const { data } = await sb.from('pengaturan').select('*').eq('key', 'modalAwal').maybeSingle();
+  SETTINGS.modalAwal = data && data.value ? Number(data.value) : 0;
+  document.getElementById('lapModalAwal').value = SETTINGS.modalAwal;
+}
+document.getElementById('lapModalAwal').addEventListener('change', async (e)=>{
+  const val = Number(e.target.value) || 0;
+  SETTINGS.modalAwal = val;
+  await sb.from('pengaturan').upsert({key:'modalAwal', value: val});
+  toast('Modal Awal disimpan');
+});
 
 /* ====== LOAD DATA ====== */
 async function loadAll(){
@@ -296,6 +364,11 @@ function setupRealtime(){
       populateUnitSelects();
       refreshActiveSection();
     })
+    .on('postgres_changes', {event:'*', schema:'public', table:'akun'}, async ()=>{
+      await loadAll();
+      populateAkunSelect();
+      refreshActiveSection();
+    })
     .subscribe((status)=>{
       const dot = document.getElementById('connDot');
       const txt = document.getElementById('connTxt');
@@ -310,6 +383,7 @@ function refreshActiveSection(){
   if(sec==='dashboard') renderDashboard();
   if(sec==='transaksi') renderTransaksiSection();
   if(sec==='unitusaha') renderUnitUsahaSection();
+  if(sec==='akun') renderAkunSection();
 }
 
 /* ====== NAVIGASI ====== */
@@ -332,6 +406,9 @@ function getAkunNama(id){
   const a = STATE.akun.find(x=>x.id===id);
   return a ? `${a.kode} - ${a.nama}` : '-';
 }
+function getAkun(id){
+  return STATE.akun.find(x=>x.id===id);
+}
 function populateUnitSelects(){
   const sel = document.getElementById('txUnit');
   const cur = sel.value;
@@ -339,6 +416,17 @@ function populateUnitSelects(){
   STATE.unitusaha.forEach(u=>{
     const opt = document.createElement('option');
     opt.value = u.id; opt.textContent = u.nama;
+    sel.appendChild(opt);
+  });
+  if(cur) sel.value = cur;
+}
+function populateAkunSelect(){
+  const sel = document.getElementById('txAkun');
+  const cur = sel.value;
+  sel.innerHTML = '';
+  STATE.akun.forEach(a=>{
+    const opt = document.createElement('option');
+    opt.value = a.id; opt.textContent = `${a.kode} - ${a.nama}`;
     sel.appendChild(opt);
   });
   if(cur) sel.value = cur;
@@ -391,17 +479,19 @@ function renderDashboard(){
 /* ====== TRANSAKSI ====== */
 function renderTransaksiSection(){
   populateUnitSelects();
+  populateAkunSelect();
   const wrap = document.getElementById('txTableWrap');
   if(STATE.transaksi.length===0){
     wrap.innerHTML = '<div class="empty">Belum ada transaksi.</div>';
     return;
   }
-  let html = '<table><thead><tr><th>Tanggal</th><th>Unit</th><th>Jenis</th><th class="num">Jumlah</th><th>Ket</th><th></th></tr></thead><tbody>';
+  let html = '<table><thead><tr><th>Tanggal</th><th>Unit</th><th>Jenis</th><th>Akun</th><th class="num">Jumlah</th><th>Ket</th><th></th></tr></thead><tbody>';
   STATE.transaksi.forEach(t=>{
     html += `<tr>
       <td>${fmtDateID(t.tanggal)}</td>
       <td>${getUnitNama(t.unit_id)}</td>
       <td><span class="badge ${t.jenis==='masuk'?'pos':'neg'}">${t.jenis==='masuk'?'Masuk':'Keluar'}</span></td>
+      <td>${getAkunNama(t.akun_id)}</td>
       <td class="num">${fmtRp(t.jumlah)}</td>
       <td>${t.ket||'-'}</td>
       <td class="row-actions">
@@ -416,12 +506,15 @@ function renderTransaksiSection(){
 document.getElementById('txForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
   if(STATE.unitusaha.length===0){ toast('Tambahkan Unit Usaha dulu'); return; }
+  if(STATE.akun.length===0){ toast('Tambahkan Akun dulu'); return; }
   const id = document.getElementById('txId').value;
   const obj = {
     tanggal: document.getElementById('txTanggal').value,
     unit_id: document.getElementById('txUnit').value,
     jenis: document.getElementById('txJenis').value,
+    akun_id: document.getElementById('txAkun').value,
     jumlah: Number(document.getElementById('txJumlah').value),
+    metode: document.getElementById('txMetode').value,
     ket: document.getElementById('txKet').value.trim(),
     updated_at: new Date().toISOString()
   };
@@ -448,7 +541,9 @@ window.editTx = function(id){
   document.getElementById('txTanggal').value = t.tanggal;
   document.getElementById('txUnit').value = t.unit_id;
   document.getElementById('txJenis').value = t.jenis;
+  document.getElementById('txAkun').value = t.akun_id || '';
   document.getElementById('txJumlah').value = t.jumlah;
+  document.getElementById('txMetode').value = t.metode || 'Kas';
   document.getElementById('txKet').value = t.ket || '';
   document.getElementById('txCancelEdit').style.display = 'inline-block';
   window.scrollTo(0,0);
@@ -527,23 +622,204 @@ document.getElementById('unitCancelEdit').addEventListener('click', ()=>{
   document.getElementById('unitCancelEdit').style.display = 'none';
 });
 
-/* ====== LAPORAN LABA RUGI ====== */
+/* ====== AKUN ====== */
+function renderAkunSection(){
+  const wrap = document.getElementById('akunTableWrap');
+  if(STATE.akun.length===0){
+    wrap.innerHTML = '<div class="empty">Belum ada akun.</div>';
+    return;
+  }
+  const tipeLabel = {aset:'Aset', kewajiban:'Kewajiban', ekuitas:'Ekuitas', pendapatan:'Pendapatan', beban:'Beban'};
+  let html = '<table><thead><tr><th>Kode</th><th>Nama Akun</th><th>Tipe</th><th></th></tr></thead><tbody>';
+  STATE.akun.slice().sort((a,b)=>a.kode.localeCompare(b.kode)).forEach(a=>{
+    html += `<tr><td>${a.kode}</td><td>${a.nama}</td><td>${tipeLabel[a.tipe]||a.tipe}</td><td class="row-actions">
+      <button class="btn small secondary" onclick="editAkun('${a.id}')">Edit</button>
+      <button class="btn small danger" onclick="deleteAkun('${a.id}')">Hapus</button>
+    </td></tr>`;
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+document.getElementById('akunForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const id = document.getElementById('akunId').value;
+  const obj = {
+    kode: document.getElementById('akunKode').value.trim(),
+    nama: document.getElementById('akunNama').value.trim(),
+    tipe: document.getElementById('akunTipe').value
+  };
+  let error;
+  if(id){
+    ({ error } = await sb.from('akun').update(obj).eq('id', id));
+  } else {
+    ({ error } = await sb.from('akun').insert(obj));
+  }
+  if(error){ toast('Gagal simpan: ' + error.message); return; }
+  document.getElementById('akunForm').reset();
+  document.getElementById('akunId').value = '';
+  document.getElementById('akunCancelEdit').style.display = 'none';
+  await loadAll();
+  populateAkunSelect();
+  renderAkunSection();
+  toast('Akun disimpan');
+});
+window.editAkun = function(id){
+  const a = STATE.akun.find(x=>x.id===id);
+  if(!a) return;
+  document.getElementById('akunId').value = a.id;
+  document.getElementById('akunKode').value = a.kode;
+  document.getElementById('akunNama').value = a.nama;
+  document.getElementById('akunTipe').value = a.tipe;
+  document.getElementById('akunCancelEdit').style.display = 'inline-block';
+  window.scrollTo(0,0);
+};
+window.deleteAkun = async function(id){
+  if(!confirm('Hapus akun ini? Transaksi yang memakai akun ini akan kehilangan labelnya.')) return;
+  const { error } = await sb.from('akun').delete().eq('id', id);
+  if(error){ toast('Gagal hapus (mungkin masih dipakai transaksi): ' + error.message); return; }
+  await loadAll();
+  populateAkunSelect();
+  renderAkunSection();
+  toast('Akun dihapus');
+};
+document.getElementById('akunCancelEdit').addEventListener('click', ()=>{
+  document.getElementById('akunForm').reset();
+  document.getElementById('akunId').value = '';
+  document.getElementById('akunCancelEdit').style.display = 'none';
+});
+
+/* ====== LAPORAN ====== */
+document.getElementById('lapJenis').addEventListener('change', ()=>{
+  document.getElementById('lapOutput').innerHTML = '';
+});
 document.getElementById('btnTampilLaporan').addEventListener('click', ()=>{
+  const jenis = document.getElementById('lapJenis').value;
   const dari = document.getElementById('lapDari').value;
   const sampai = document.getElementById('lapSampai').value;
+  if(jenis==='labarugi') renderLaporanLabaRugi(dari, sampai);
+  else if(jenis==='neraca') renderLaporanNeraca(sampai);
+  else if(jenis==='aruskas') renderLaporanArusKas(dari, sampai);
+  else if(jenis==='calk') renderLaporanCALK(dari, sampai);
+});
+
+function hitungLabaRugiPeriode(dari, sampai){
   const list = STATE.transaksi.filter(t=> t.tanggal >= dari && t.tanggal <= sampai);
   const pendapatan = list.filter(t=>t.jenis==='masuk').reduce((s,t)=>s+Number(t.jumlah),0);
   const beban = list.filter(t=>t.jenis==='keluar').reduce((s,t)=>s+Number(t.jumlah),0);
-  const laba = pendapatan - beban;
+  return { pendapatan, beban, laba: pendapatan-beban, list };
+}
+
+function renderLaporanLabaRugi(dari, sampai){
+  const { pendapatan, beban, laba, list } = hitungLabaRugiPeriode(dari, sampai);
+  // rincian per akun
+  const akunPendapatan = {}, akunBeban = {};
+  list.forEach(t=>{
+    const nama = getAkunNama(t.akun_id);
+    if(t.jenis==='masuk') akunPendapatan[nama] = (akunPendapatan[nama]||0) + Number(t.jumlah);
+    else akunBeban[nama] = (akunBeban[nama]||0) + Number(t.jumlah);
+  });
   let html = `<h2 style="text-align:center">LAPORAN LABA RUGI</h2>
     <p style="text-align:center;color:var(--text-mut);font-size:12.5px;margin-bottom:16px">Periode ${fmtDateID(dari)} s.d. ${fmtDateID(sampai)}</p>
     <table><tbody>
-      <tr><td style="font-weight:700">Pendapatan</td><td class="num" style="font-weight:700">${fmtRp(pendapatan)}</td></tr>
-      <tr><td style="font-weight:700">Beban</td><td class="num" style="font-weight:700">${fmtRp(beban)}</td></tr>
+      <tr><td colspan="2" style="font-weight:700;background:var(--primary-light)">PENDAPATAN</td></tr>`;
+  Object.entries(akunPendapatan).forEach(([nama,v])=>{
+    html += `<tr><td style="padding-left:20px">${nama}</td><td class="num">${fmtRp(v)}</td></tr>`;
+  });
+  html += `<tr><td style="font-weight:700">Jumlah Pendapatan</td><td class="num" style="font-weight:700">${fmtRp(pendapatan)}</td></tr>
+      <tr><td colspan="2" style="font-weight:700;background:var(--primary-light)">BEBAN</td></tr>`;
+  Object.entries(akunBeban).forEach(([nama,v])=>{
+    html += `<tr><td style="padding-left:20px">${nama}</td><td class="num">${fmtRp(v)}</td></tr>`;
+  });
+  html += `<tr><td style="font-weight:700">Jumlah Beban</td><td class="num" style="font-weight:700">${fmtRp(beban)}</td></tr>
       <tr><td style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">LABA (RUGI) BERSIH</td><td class="num" style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">${fmtRp(laba)}</td></tr>
     </tbody></table>`;
   document.getElementById('lapOutput').innerHTML = html;
-});
+}
+
+function renderLaporanNeraca(sampai){
+  const listSD = STATE.transaksi.filter(t=> t.tanggal <= sampai);
+  const kasMasuk = listSD.filter(t=>t.jenis==='masuk').reduce((s,t)=>s+Number(t.jumlah),0);
+  const kasKeluar = listSD.filter(t=>t.jenis==='keluar').reduce((s,t)=>s+Number(t.jumlah),0);
+  const modalAwal = SETTINGS.modalAwal || 0;
+  const saldoKas = modalAwal + kasMasuk - kasKeluar;
+  const labaDitahan = kasMasuk - kasKeluar; // laba akumulasi sejak awal jadi bagian ekuitas
+  const totalAset = saldoKas;
+  const totalKewajiban = 0;
+  const totalEkuitas = modalAwal + labaDitahan;
+  let html = `<h2 style="text-align:center">NERACA</h2>
+    <p style="text-align:center;color:var(--text-mut);font-size:12.5px;margin-bottom:16px">Per Tanggal ${fmtDateID(sampai)}</p>
+    <div class="grid cols2">
+    <div><table><tbody>
+      <tr><td colspan="2" style="font-weight:700;background:var(--primary-light)">ASET</td></tr>
+      <tr><td style="padding-left:20px">Kas &amp; Bank</td><td class="num">${fmtRp(saldoKas)}</td></tr>
+      <tr><td style="font-weight:700">JUMLAH ASET</td><td class="num" style="font-weight:700">${fmtRp(totalAset)}</td></tr>
+    </tbody></table></div>
+    <div><table><tbody>
+      <tr><td colspan="2" style="font-weight:700;background:var(--primary-light)">KEWAJIBAN</td></tr>
+      <tr><td style="padding-left:20px">Hutang Usaha</td><td class="num">${fmtRp(totalKewajiban)}</td></tr>
+      <tr><td style="font-weight:700">JUMLAH KEWAJIBAN</td><td class="num" style="font-weight:700">${fmtRp(totalKewajiban)}</td></tr>
+      <tr><td colspan="2" style="font-weight:700;background:var(--primary-light);padding-top:14px">EKUITAS</td></tr>
+      <tr><td style="padding-left:20px">Modal Awal</td><td class="num">${fmtRp(modalAwal)}</td></tr>
+      <tr><td style="padding-left:20px">Laba Ditahan Berjalan</td><td class="num">${fmtRp(labaDitahan)}</td></tr>
+      <tr><td style="font-weight:700">JUMLAH EKUITAS</td><td class="num" style="font-weight:700">${fmtRp(totalEkuitas)}</td></tr>
+      <tr><td style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">JUMLAH KEWAJIBAN &amp; EKUITAS</td><td class="num" style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">${fmtRp(totalKewajiban+totalEkuitas)}</td></tr>
+    </tbody></table></div>
+    </div>`;
+  if(Math.round(totalAset) !== Math.round(totalKewajiban+totalEkuitas)){
+    html += `<p style="color:var(--danger);font-size:12px;margin-top:10px">⚠ Neraca belum balance. Cek kembali data transaksi dan Modal Awal.</p>`;
+  }
+  document.getElementById('lapOutput').innerHTML = html;
+}
+
+function renderLaporanArusKas(dari, sampai){
+  const { pendapatan, beban, laba } = hitungLabaRugiPeriode(dari, sampai);
+  const listSblm = STATE.transaksi.filter(t=> t.tanggal < dari);
+  const kasMasukSblm = listSblm.filter(t=>t.jenis==='masuk').reduce((s,t)=>s+Number(t.jumlah),0);
+  const kasKeluarSblm = listSblm.filter(t=>t.jenis==='keluar').reduce((s,t)=>s+Number(t.jumlah),0);
+  const saldoAwal = (SETTINGS.modalAwal||0) + kasMasukSblm - kasKeluarSblm;
+  const saldoAkhir = saldoAwal + laba;
+  let html = `<h2 style="text-align:center">LAPORAN ARUS KAS</h2>
+    <p style="text-align:center;color:var(--text-mut);font-size:12.5px;margin-bottom:16px">Periode ${fmtDateID(dari)} s.d. ${fmtDateID(sampai)}</p>
+    <table><tbody>
+      <tr><td colspan="2" style="font-weight:700;background:var(--primary-light)">ARUS KAS DARI AKTIVITAS OPERASI</td></tr>
+      <tr><td style="padding-left:20px">Kas Masuk (Pendapatan)</td><td class="num">${fmtRp(pendapatan)}</td></tr>
+      <tr><td style="padding-left:20px">Kas Keluar (Beban)</td><td class="num">(${fmtRp(beban)})</td></tr>
+      <tr><td style="font-weight:700">Kenaikan (Penurunan) Kas Bersih</td><td class="num" style="font-weight:700">${fmtRp(laba)}</td></tr>
+      <tr><td colspan="2" style="padding-top:10px"></td></tr>
+      <tr><td>Saldo Kas Awal Periode</td><td class="num">${fmtRp(saldoAwal)}</td></tr>
+      <tr><td style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">Saldo Kas Akhir Periode</td><td class="num" style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">${fmtRp(saldoAkhir)}</td></tr>
+    </tbody></table>`;
+  document.getElementById('lapOutput').innerHTML = html;
+}
+
+function renderLaporanCALK(dari, sampai){
+  const { pendapatan, beban, laba, list } = hitungLabaRugiPeriode(dari, sampai);
+  const perUnit = {};
+  STATE.unitusaha.forEach(u=> perUnit[u.nama] = {p:0,b:0});
+  list.forEach(t=>{
+    const nama = getUnitNama(t.unit_id);
+    if(!perUnit[nama]) perUnit[nama] = {p:0,b:0};
+    if(t.jenis==='masuk') perUnit[nama].p += Number(t.jumlah);
+    else perUnit[nama].b += Number(t.jumlah);
+  });
+  let html = `<h2 style="text-align:center">CATATAN ATAS LAPORAN KEUANGAN (CALK)</h2>
+    <p style="text-align:center;color:var(--text-mut);font-size:12.5px;margin-bottom:16px">Periode ${fmtDateID(dari)} s.d. ${fmtDateID(sampai)}</p>
+    <h3 style="color:var(--primary-dark);margin-bottom:8px">1. Dasar Penyusunan</h3>
+    <p style="font-size:13px;margin-bottom:14px">Laporan disusun berdasarkan basis kas (cash basis), mencatat transaksi pada saat kas diterima atau dikeluarkan.</p>
+    <h3 style="color:var(--primary-dark);margin-bottom:8px">2. Rincian Pendapatan &amp; Beban per Unit Usaha</h3>
+    <table style="margin-bottom:14px"><thead><tr><th>Unit Usaha</th><th class="num">Pendapatan</th><th class="num">Beban</th><th class="num">Laba/Rugi</th></tr></thead><tbody>`;
+  Object.entries(perUnit).forEach(([nama,v])=>{
+    html += `<tr><td>${nama}</td><td class="num">${fmtRp(v.p)}</td><td class="num">${fmtRp(v.b)}</td><td class="num">${fmtRp(v.p-v.b)}</td></tr>`;
+  });
+  html += `</tbody></table>
+    <h3 style="color:var(--primary-dark);margin-bottom:8px">3. Ringkasan</h3>
+    <p style="font-size:13px">Total Pendapatan periode ini: <strong>${fmtRp(pendapatan)}</strong><br>
+    Total Beban periode ini: <strong>${fmtRp(beban)}</strong><br>
+    Laba (Rugi) Bersih: <strong>${fmtRp(laba)}</strong><br>
+    Jumlah Unit Usaha aktif: <strong>${STATE.unitusaha.length}</strong><br>
+    Jumlah Akun terdaftar: <strong>${STATE.akun.length}</strong></p>`;
+  document.getElementById('lapOutput').innerHTML = html;
+}
 
 /* ====== INIT: CEK SESI LOGIN ====== */
 (async function init(){
