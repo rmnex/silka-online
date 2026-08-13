@@ -63,6 +63,20 @@ td{padding:7px 8px;border-bottom:1px solid var(--border);}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--primary-dark);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;}
 .toast.show{opacity:1;}
 #appWrap{display:none;}
+.doc-preview{background:#fff;border:1px solid var(--border);border-radius:10px;padding:26px;max-width:520px;margin:0 auto;}
+.doc-preview .kop{text-align:center;margin-bottom:18px;border-bottom:2px solid var(--primary);padding-bottom:12px;}
+.doc-preview .kop h2{color:var(--primary-dark);font-size:18px;}
+.doc-preview .kop .addr{font-size:11.5px;color:var(--text-mut);}
+.doc-preview .doctitle{text-align:center;font-weight:800;font-size:16px;letter-spacing:1px;margin:14px 0;text-decoration:underline;}
+.doc-preview table{width:100%;font-size:13px;}
+.doc-preview .ttd{margin-top:40px;text-align:right;font-size:13px;}
+.doc-preview .ttd .line{margin-top:50px;border-top:1px solid var(--text);display:inline-block;padding-top:4px;min-width:160px;}
+@media print{
+  body *{visibility:hidden;}
+  #printArea, #printArea *{visibility:visible;}
+  #printArea{position:absolute;top:0;left:0;width:100%;}
+  .no-print{display:none !important;}
+}
 </style>
 </head>
 <body>
@@ -106,6 +120,7 @@ td{padding:7px 8px;border-bottom:1px solid var(--border);}
   <button data-sec="aset">Aset</button>
   <button data-sec="pengurus">Pengurus</button>
   <button data-sec="setoran">Setoran PADes/PAK</button>
+  <button data-sec="notakwitansi">Nota &amp; Kwitansi</button>
   <button data-sec="laporan">Laporan</button>
 </nav>
 <main>
@@ -335,6 +350,56 @@ td{padding:7px 8px;border-bottom:1px solid var(--border);}
     </div>
   </div>
 
+  <!-- NOTA & KWITANSI -->
+  <div class="section" id="sec-notakwitansi">
+    <div class="card no-print">
+      <h2>Identitas BUMKA (Kop Surat)</h2>
+      <div class="grid cols2">
+        <div class="field"><label>Nama BUMKA</label><input type="text" id="setNamaBumka" placeholder="cth: BUMKA Maju Bersama"></div>
+        <div class="field"><label>Kampung/Desa &amp; Kecamatan</label><input type="text" id="setKampung" placeholder="cth: Kampung Penawai, Kec. Bongan"></div>
+      </div>
+      <button class="btn small" id="btnSimpanIdentitas" style="margin-top:10px">Simpan Identitas</button>
+    </div>
+    <div class="card no-print">
+      <h2>Buat Dokumen</h2>
+      <div class="field" style="margin-bottom:12px"><label>Jenis Dokumen</label>
+        <select id="nkJenis">
+          <option value="kwitansi">Kwitansi</option>
+          <option value="nota">Nota</option>
+        </select>
+      </div>
+
+      <div id="nkKwitansiFields">
+        <div class="grid cols2">
+          <div class="field"><label>Tanggal</label><input type="date" id="kwTanggal"></div>
+          <div class="field"><label>Sudah Terima Dari</label><input type="text" id="kwDari" placeholder="cth: Bpk. Ahmad"></div>
+        </div>
+        <div class="grid cols2">
+          <div class="field"><label>Jumlah (Rp)</label><input type="number" id="kwJumlah" min="0" step="1"></div>
+          <div class="field"><label>Untuk Pembayaran</label><input type="text" id="kwUntuk" placeholder="cth: Sewa Mini Excavator 2 hari"></div>
+        </div>
+      </div>
+
+      <div id="nkNotaFields" style="display:none">
+        <div class="grid cols2">
+          <div class="field"><label>Tanggal</label><input type="date" id="ntTanggal"></div>
+          <div class="field"><label>Nama Pembeli</label><input type="text" id="ntPembeli" placeholder="cth: Ibu Siti"></div>
+        </div>
+        <div id="ntItemsWrap"></div>
+        <button type="button" class="btn small secondary" id="btnTambahItem" style="margin:8px 0">+ Tambah Item</button>
+        <p style="text-align:right;font-weight:700;font-size:14px" id="ntTotalTxt">Total: Rp 0</p>
+      </div>
+
+      <button class="btn" id="btnPreviewDokumen" style="margin-top:8px">Tampilkan Preview</button>
+    </div>
+    <div class="card no-print" id="nkPreviewCard" style="display:none">
+      <div class="row-actions" style="margin-bottom:14px">
+        <button class="btn secondary" id="btnCetakDokumen">🖨️ Cetak</button>
+      </div>
+      <div id="printArea"></div>
+    </div>
+  </div>
+
   <!-- LAPORAN -->
   <div class="section" id="sec-laporan">
     <div class="card">
@@ -445,19 +510,23 @@ async function ensureDefaultAkun(){
 }
 
 /* ====== PENGATURAN (key-value sederhana) ====== */
-let SETTINGS = { modalAwal: 0, istilahPades: 'PADes', frekuensiSetoran: 'bulanan', padesPercent: 45 };
+let SETTINGS = { modalAwal: 0, istilahPades: 'PADes', frekuensiSetoran: 'bulanan', padesPercent: 45, namaBumka: '', kampung: '' };
 async function loadSettings(){
-  const { data } = await sb.from('pengaturan').select('*').in('key', ['modalAwal','istilahPades','frekuensiSetoran','padesPercent']);
+  const { data } = await sb.from('pengaturan').select('*').in('key', ['modalAwal','istilahPades','frekuensiSetoran','padesPercent','namaBumka','kampung']);
   (data||[]).forEach(row=>{
     if(row.key==='modalAwal') SETTINGS.modalAwal = Number(row.value)||0;
     if(row.key==='istilahPades') SETTINGS.istilahPades = row.value || 'PADes';
     if(row.key==='frekuensiSetoran') SETTINGS.frekuensiSetoran = row.value || 'bulanan';
     if(row.key==='padesPercent') SETTINGS.padesPercent = row.value !== undefined && row.value !== null ? Number(row.value) : 45;
+    if(row.key==='namaBumka') SETTINGS.namaBumka = row.value || '';
+    if(row.key==='kampung') SETTINGS.kampung = row.value || '';
   });
   document.getElementById('lapModalAwal').value = SETTINGS.modalAwal;
   document.getElementById('setIstilahPades').value = SETTINGS.istilahPades;
   document.getElementById('setFrekuensiSetoran').value = SETTINGS.frekuensiSetoran;
   document.getElementById('setPadesPercent').value = SETTINGS.padesPercent;
+  document.getElementById('setNamaBumka').value = SETTINGS.namaBumka;
+  document.getElementById('setKampung').value = SETTINGS.kampung;
 }
 document.getElementById('lapModalAwal').addEventListener('change', async (e)=>{
   const val = Number(e.target.value) || 0;
@@ -476,6 +545,15 @@ document.getElementById('btnSimpanPengaturanSetoran').addEventListener('click', 
   ]);
   renderSetoranSection();
   toast('Pengaturan setoran disimpan');
+});
+document.getElementById('btnSimpanIdentitas').addEventListener('click', async ()=>{
+  SETTINGS.namaBumka = document.getElementById('setNamaBumka').value.trim();
+  SETTINGS.kampung = document.getElementById('setKampung').value.trim();
+  await sb.from('pengaturan').upsert([
+    {key:'namaBumka', value: SETTINGS.namaBumka},
+    {key:'kampung', value: SETTINGS.kampung}
+  ]);
+  toast('Identitas BUMKA disimpan');
 });
 
 /* ====== LOAD DATA ====== */
@@ -546,6 +624,7 @@ function refreshActiveSection(){
   if(sec==='aset') renderAsetSection();
   if(sec==='pengurus') renderPengurusSection();
   if(sec==='setoran') renderSetoranSection();
+  if(sec==='notakwitansi') renderNotaKwitansiSection();
 }
 
 /* ====== NAVIGASI ====== */
@@ -1232,6 +1311,124 @@ document.getElementById('setoranCancelEdit').addEventListener('click', ()=>{
   document.getElementById('setoranSeharusnyaTxt').textContent = '';
   setoranSeharusnyaValue = 0;
   document.getElementById('setoranCancelEdit').style.display = 'none';
+});
+
+/* ====== TERBILANG (Angka ke Kata, Bahasa Indonesia) ====== */
+function terbilang(n){
+  n = Math.floor(Math.abs(Number(n)||0));
+  const satuan = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+  function eja(num){
+    if(num < 12) return satuan[num];
+    if(num < 20) return eja(num-10) + ' belas';
+    if(num < 100) return eja(Math.floor(num/10)) + ' puluh' + (num%10!==0 ? ' ' + eja(num%10) : '');
+    if(num < 200) return 'seratus' + (num%100!==0 ? ' ' + eja(num%100) : '');
+    if(num < 1000) return eja(Math.floor(num/100)) + ' ratus' + (num%100!==0 ? ' ' + eja(num%100) : '');
+    if(num < 2000) return 'seribu' + (num%1000!==0 ? ' ' + eja(num%1000) : '');
+    if(num < 1000000) return eja(Math.floor(num/1000)) + ' ribu' + (num%1000!==0 ? ' ' + eja(num%1000) : '');
+    if(num < 1000000000) return eja(Math.floor(num/1000000)) + ' juta' + (num%1000000!==0 ? ' ' + eja(num%1000000) : '');
+    if(num < 1000000000000) return eja(Math.floor(num/1000000000)) + ' miliar' + (num%1000000000!==0 ? ' ' + eja(num%1000000000) : '');
+    return eja(Math.floor(num/1000000000000)) + ' triliun' + (num%1000000000000!==0 ? ' ' + eja(num%1000000000000) : '');
+  }
+  if(n===0) return 'nol rupiah';
+  let hasil = eja(n).trim().replace(/\s+/g,' ');
+  hasil = hasil.charAt(0).toUpperCase() + hasil.slice(1);
+  return hasil + ' rupiah';
+}
+
+/* ====== NOTA & KWITANSI ====== */
+let ntItems = [{nama:'', qty:1, harga:0}];
+
+function renderNotaKwitansiSection(){
+  if(!document.getElementById('kwTanggal').value) document.getElementById('kwTanggal').value = todayStr();
+  if(!document.getElementById('ntTanggal').value) document.getElementById('ntTanggal').value = todayStr();
+  document.getElementById('nkPreviewCard').style.display = 'none';
+  renderNtItems();
+}
+document.getElementById('nkJenis').addEventListener('change', (e)=>{
+  const isKwitansi = e.target.value === 'kwitansi';
+  document.getElementById('nkKwitansiFields').style.display = isKwitansi ? 'block' : 'none';
+  document.getElementById('nkNotaFields').style.display = isKwitansi ? 'none' : 'block';
+  document.getElementById('nkPreviewCard').style.display = 'none';
+});
+
+function renderNtItems(){
+  const wrap = document.getElementById('ntItemsWrap');
+  let html = '';
+  let total = 0;
+  ntItems.forEach((it,i)=>{
+    const subtotal = (Number(it.qty)||0) * (Number(it.harga)||0);
+    total += subtotal;
+    html += `<div class="grid cols2" style="margin-bottom:6px;align-items:end">
+      <div class="field" style="grid-column:span 1"><label>${i===0?'Nama Barang/Jasa':''}</label><input type="text" value="${it.nama}" oninput="updateNtItem(${i},'nama',this.value)" placeholder="cth: Sewa Kursi"></div>
+      <div class="field" style="display:flex;gap:6px">
+        <div style="flex:1"><label>${i===0?'Qty':''}</label><input type="number" min="0" value="${it.qty}" oninput="updateNtItem(${i},'qty',this.value)"></div>
+        <div style="flex:2"><label>${i===0?'Harga Satuan':''}</label><input type="number" min="0" value="${it.harga}" oninput="updateNtItem(${i},'harga',this.value)"></div>
+        ${ntItems.length>1 ? `<button type="button" class="btn small danger" style="align-self:end" onclick="removeNtItem(${i})">✕</button>` : ''}
+      </div>
+    </div>`;
+  });
+  wrap.innerHTML = html;
+  document.getElementById('ntTotalTxt').textContent = 'Total: ' + fmtRp(total);
+}
+window.updateNtItem = function(i, field, val){
+  ntItems[i][field] = field==='nama' ? val : Number(val)||0;
+  renderNtItems();
+};
+window.removeNtItem = function(i){
+  ntItems.splice(i,1);
+  renderNtItems();
+};
+document.getElementById('btnTambahItem').addEventListener('click', ()=>{
+  ntItems.push({nama:'', qty:1, harga:0});
+  renderNtItems();
+});
+
+function kopSuratHtml(){
+  return `<div class="kop">
+    <h2>${SETTINGS.namaBumka || '(Nama BUMKA belum diisi)'}</h2>
+    <div class="addr">${SETTINGS.kampung || ''}</div>
+  </div>`;
+}
+document.getElementById('btnPreviewDokumen').addEventListener('click', ()=>{
+  const jenis = document.getElementById('nkJenis').value;
+  let html = kopSuratHtml();
+  if(jenis==='kwitansi'){
+    const tgl = document.getElementById('kwTanggal').value;
+    const dari = document.getElementById('kwDari').value.trim() || '-';
+    const jumlah = Number(document.getElementById('kwJumlah').value)||0;
+    const untuk = document.getElementById('kwUntuk').value.trim() || '-';
+    html += `<div class="doctitle">KWITANSI</div>
+      <table><tbody>
+        <tr><td style="width:140px">Sudah terima dari</td><td>: ${dari}</td></tr>
+        <tr><td style="vertical-align:top">Jumlah Uang</td><td>: <strong>${fmtRp(jumlah)}</strong></td></tr>
+        <tr><td style="vertical-align:top">Terbilang</td><td>: <em>${terbilang(jumlah)}</em></td></tr>
+        <tr><td style="vertical-align:top">Untuk Pembayaran</td><td>: ${untuk}</td></tr>
+      </tbody></table>
+      <div class="ttd">${SETTINGS.kampung ? SETTINGS.kampung.split(',')[0] : ''}, ${fmtDateID(tgl)}<br><span class="line">Bendahara</span></div>`;
+  } else {
+    const tgl = document.getElementById('ntTanggal').value;
+    const pembeli = document.getElementById('ntPembeli').value.trim() || '-';
+    let total = 0;
+    let rows = '';
+    ntItems.forEach(it=>{
+      const subtotal = (Number(it.qty)||0)*(Number(it.harga)||0);
+      total += subtotal;
+      rows += `<tr><td>${it.nama||'-'}</td><td class="num">${it.qty}</td><td class="num">${fmtRp(it.harga)}</td><td class="num">${fmtRp(subtotal)}</td></tr>`;
+    });
+    html += `<div class="doctitle">NOTA</div>
+      <p style="font-size:13px;margin-bottom:10px">Tanggal: ${fmtDateID(tgl)}<br>Kepada: ${pembeli}</p>
+      <table style="border-collapse:collapse">
+        <thead><tr><th style="text-align:left;border-bottom:1px solid #999">Item</th><th class="num" style="border-bottom:1px solid #999">Qty</th><th class="num" style="border-bottom:1px solid #999">Harga</th><th class="num" style="border-bottom:1px solid #999">Subtotal</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p style="text-align:right;font-weight:800;margin-top:10px;border-top:2px solid #333;padding-top:6px">TOTAL: ${fmtRp(total)}</p>
+      <div class="ttd">${SETTINGS.kampung ? SETTINGS.kampung.split(',')[0] : ''}, ${fmtDateID(tgl)}<br><span class="line">Penerima</span></div>`;
+  }
+  document.getElementById('printArea').innerHTML = `<div class="doc-preview">${html}</div>`;
+  document.getElementById('nkPreviewCard').style.display = 'block';
+});
+document.getElementById('btnCetakDokumen').addEventListener('click', ()=>{
+  window.print();
 });
 
 /* ====== LAPORAN ====== */
