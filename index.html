@@ -104,6 +104,8 @@ td{padding:7px 8px;border-bottom:1px solid var(--border);}
   <button data-sec="unitusaha">Unit Usaha</button>
   <button data-sec="akun">Akun</button>
   <button data-sec="aset">Aset</button>
+  <button data-sec="pengurus">Pengurus</button>
+  <button data-sec="setoran">Setoran PADes/PAK</button>
   <button data-sec="laporan">Laporan</button>
 </nav>
 <main>
@@ -256,6 +258,83 @@ td{padding:7px 8px;border-bottom:1px solid var(--border);}
     </div>
   </div>
 
+  <!-- PENGURUS -->
+  <div class="section" id="sec-pengurus">
+    <div class="card">
+      <h2 id="pengurusFormTitle">Tambah Pengurus</h2>
+      <form id="pengurusForm">
+        <input type="hidden" id="pengurusId">
+        <div class="grid cols2">
+          <div class="field"><label>Nama</label><input type="text" id="pengurusNama" placeholder="cth: Budi Santoso" required></div>
+          <div class="field"><label>Jabatan</label><input type="text" id="pengurusJabatan" placeholder="cth: Direktur" required></div>
+        </div>
+        <div class="field" style="margin-bottom:14px"><label>Persentase Insentif (%)</label><input type="number" id="pengurusPersen" min="0" max="100" step="0.01" value="0"></div>
+        <div class="row-actions">
+          <button type="submit" class="btn">Simpan</button>
+          <button type="button" class="btn secondary" id="pengurusCancelEdit" style="display:none">Batal Edit</button>
+        </div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Daftar Pengurus</h2>
+      <div id="pengurusTableWrap"></div>
+    </div>
+  </div>
+
+  <!-- SETORAN PADES/PAK -->
+  <div class="section" id="sec-setoran">
+    <div class="card">
+      <h2>Pengaturan Setoran</h2>
+      <div class="grid cols2">
+        <div class="field"><label>Sebutan yang Dipakai</label>
+          <select id="setIstilahPades">
+            <option value="PADes">PADes (Pendapatan Asli Desa)</option>
+            <option value="PAK">PAK (Pendapatan Asli Kampung)</option>
+          </select>
+        </div>
+        <div class="field"><label>Frekuensi Setoran ke Kampung</label>
+          <select id="setFrekuensiSetoran">
+            <option value="bulanan">Bulanan</option>
+            <option value="semester">Per 6 Bulan (Semester)</option>
+            <option value="tahunan">Tahunan</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" style="max-width:280px;margin-top:12px"><label>Persentase PADes/PAK dari Laba (%)</label><input type="number" id="setPadesPercent" min="0" max="100" step="0.01" value="45"></div>
+      <button class="btn small" id="btnSimpanPengaturanSetoran" style="margin-top:12px">Simpan Pengaturan</button>
+    </div>
+    <div class="card">
+      <h2 id="setoranFormTitle">Catat Setoran</h2>
+      <div class="row-actions" style="margin-bottom:10px">
+        <button type="button" class="btn small secondary" id="btnIsiPeriodeBerikutnya">Isi Periode Berikutnya Otomatis</button>
+      </div>
+      <form id="setoranForm">
+        <input type="hidden" id="setoranId">
+        <div class="grid cols2">
+          <div class="field"><label>Periode Dari</label><input type="date" id="setoranDari" required></div>
+          <div class="field"><label>Periode Sampai</label><input type="date" id="setoranSampai" required></div>
+        </div>
+        <div class="row-actions" style="margin-bottom:12px">
+          <button type="button" class="btn small secondary" id="btnHitungSeharusnya">Hitung Jumlah Seharusnya</button>
+          <span id="setoranSeharusnyaTxt" style="font-weight:700;color:var(--primary-dark)"></span>
+        </div>
+        <div class="grid cols2">
+          <div class="field"><label>Tanggal Setor Aktual</label><input type="date" id="setoranTanggalSetor"></div>
+          <div class="field"><label>Jumlah Disetor (Rp)</label><input type="number" id="setoranJumlahDisetor" min="0" step="1"></div>
+        </div>
+        <div class="field" style="margin-bottom:14px"><label>Keterangan</label><input type="text" id="setoranKeterangan" placeholder="cth: Diserahkan ke Bendahara Kampung"></div>
+        <div class="row-actions">
+          <button type="submit" class="btn">Simpan Setoran</button>
+          <button type="button" class="btn secondary" id="setoranCancelEdit" style="display:none">Batal Edit</button>
+        </div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Riwayat Setoran</h2>
+      <div id="setoranTableWrap"></div>
+    </div>
+  </div>
+
   <!-- LAPORAN -->
   <div class="section" id="sec-laporan">
     <div class="card">
@@ -291,7 +370,7 @@ const SUPABASE_URL = 'https://tozjvshvswbqrrkkdify.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_USqAxJ4gwA6mNAk4CgKW0Q_psMrx0FO';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let STATE = { unitusaha: [], akun: [], transaksi: [], aset: [] };
+let STATE = { unitusaha: [], akun: [], transaksi: [], aset: [], pengurus: [], setoran: [] };
 let currentUser = null;
 
 function toast(msg){
@@ -366,11 +445,19 @@ async function ensureDefaultAkun(){
 }
 
 /* ====== PENGATURAN (key-value sederhana) ====== */
-let SETTINGS = { modalAwal: 0 };
+let SETTINGS = { modalAwal: 0, istilahPades: 'PADes', frekuensiSetoran: 'bulanan', padesPercent: 45 };
 async function loadSettings(){
-  const { data } = await sb.from('pengaturan').select('*').eq('key', 'modalAwal').maybeSingle();
-  SETTINGS.modalAwal = data && data.value ? Number(data.value) : 0;
+  const { data } = await sb.from('pengaturan').select('*').in('key', ['modalAwal','istilahPades','frekuensiSetoran','padesPercent']);
+  (data||[]).forEach(row=>{
+    if(row.key==='modalAwal') SETTINGS.modalAwal = Number(row.value)||0;
+    if(row.key==='istilahPades') SETTINGS.istilahPades = row.value || 'PADes';
+    if(row.key==='frekuensiSetoran') SETTINGS.frekuensiSetoran = row.value || 'bulanan';
+    if(row.key==='padesPercent') SETTINGS.padesPercent = row.value !== undefined && row.value !== null ? Number(row.value) : 45;
+  });
   document.getElementById('lapModalAwal').value = SETTINGS.modalAwal;
+  document.getElementById('setIstilahPades').value = SETTINGS.istilahPades;
+  document.getElementById('setFrekuensiSetoran').value = SETTINGS.frekuensiSetoran;
+  document.getElementById('setPadesPercent').value = SETTINGS.padesPercent;
 }
 document.getElementById('lapModalAwal').addEventListener('change', async (e)=>{
   const val = Number(e.target.value) || 0;
@@ -378,19 +465,35 @@ document.getElementById('lapModalAwal').addEventListener('change', async (e)=>{
   await sb.from('pengaturan').upsert({key:'modalAwal', value: val});
   toast('Modal Awal disimpan');
 });
+document.getElementById('btnSimpanPengaturanSetoran').addEventListener('click', async ()=>{
+  SETTINGS.istilahPades = document.getElementById('setIstilahPades').value;
+  SETTINGS.frekuensiSetoran = document.getElementById('setFrekuensiSetoran').value;
+  SETTINGS.padesPercent = Number(document.getElementById('setPadesPercent').value)||0;
+  await sb.from('pengaturan').upsert([
+    {key:'istilahPades', value: SETTINGS.istilahPades},
+    {key:'frekuensiSetoran', value: SETTINGS.frekuensiSetoran},
+    {key:'padesPercent', value: SETTINGS.padesPercent}
+  ]);
+  renderSetoranSection();
+  toast('Pengaturan setoran disimpan');
+});
 
 /* ====== LOAD DATA ====== */
 async function loadAll(){
-  const [u, a, t, as] = await Promise.all([
+  const [u, a, t, as, pe, se] = await Promise.all([
     sb.from('unit_usaha').select('*').order('nama'),
     sb.from('akun').select('*').order('kode'),
     sb.from('transaksi').select('*').order('tanggal', {ascending:false}),
-    sb.from('aset').select('*').order('tanggal_beli')
+    sb.from('aset').select('*').order('tanggal_beli'),
+    sb.from('pengurus').select('*').order('nama'),
+    sb.from('setoran_pades').select('*').order('periode_dari', {ascending:false})
   ]);
   STATE.unitusaha = u.data || [];
   STATE.akun = a.data || [];
   STATE.transaksi = t.data || [];
   STATE.aset = as.data || [];
+  STATE.pengurus = pe.data || [];
+  STATE.setoran = se.data || [];
 }
 
 /* ====== REALTIME ====== */
@@ -416,6 +519,15 @@ function setupRealtime(){
       refreshActiveSection();
       toast('Data aset diperbarui');
     })
+    .on('postgres_changes', {event:'*', schema:'public', table:'pengurus'}, async ()=>{
+      await loadAll();
+      refreshActiveSection();
+    })
+    .on('postgres_changes', {event:'*', schema:'public', table:'setoran_pades'}, async ()=>{
+      await loadAll();
+      refreshActiveSection();
+      toast('Data setoran diperbarui');
+    })
     .subscribe((status)=>{
       const dot = document.getElementById('connDot');
       const txt = document.getElementById('connTxt');
@@ -432,6 +544,8 @@ function refreshActiveSection(){
   if(sec==='unitusaha') renderUnitUsahaSection();
   if(sec==='akun') renderAkunSection();
   if(sec==='aset') renderAsetSection();
+  if(sec==='pengurus') renderPengurusSection();
+  if(sec==='setoran') renderSetoranSection();
 }
 
 /* ====== NAVIGASI ====== */
@@ -920,6 +1034,204 @@ document.getElementById('asetCancelEdit').addEventListener('click', ()=>{
   document.getElementById('asetFormTitle').textContent = 'Tambah Aset';
   document.getElementById('asetCancelEdit').style.display = 'none';
   updateAsetHint();
+});
+
+/* ====== PENGURUS ====== */
+function renderPengurusSection(){
+  const wrap = document.getElementById('pengurusTableWrap');
+  if(STATE.pengurus.length===0){
+    wrap.innerHTML = '<div class="empty">Belum ada pengurus terdaftar.</div>';
+    return;
+  }
+  let html = '<table><thead><tr><th>Nama</th><th>Jabatan</th><th class="num">Insentif (%)</th><th></th></tr></thead><tbody>';
+  STATE.pengurus.forEach(p=>{
+    html += `<tr><td>${p.nama}</td><td>${p.jabatan}</td><td class="num">${p.persen_insentif}%</td><td class="row-actions">
+      <button class="btn small secondary" onclick="editPengurus('${p.id}')">Edit</button>
+      <button class="btn small danger" onclick="deletePengurus('${p.id}')">Hapus</button>
+    </td></tr>`;
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+document.getElementById('pengurusForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const id = document.getElementById('pengurusId').value;
+  const obj = {
+    nama: document.getElementById('pengurusNama').value.trim(),
+    jabatan: document.getElementById('pengurusJabatan').value.trim(),
+    persen_insentif: Number(document.getElementById('pengurusPersen').value)||0
+  };
+  let error;
+  if(id){
+    ({ error } = await sb.from('pengurus').update(obj).eq('id', id));
+  } else {
+    ({ error } = await sb.from('pengurus').insert(obj));
+  }
+  if(error){ toast('Gagal simpan: ' + error.message); return; }
+  document.getElementById('pengurusForm').reset();
+  document.getElementById('pengurusId').value = '';
+  document.getElementById('pengurusFormTitle').textContent = 'Tambah Pengurus';
+  document.getElementById('pengurusCancelEdit').style.display = 'none';
+  await loadAll();
+  renderPengurusSection();
+  toast('Pengurus disimpan');
+});
+window.editPengurus = function(id){
+  const p = STATE.pengurus.find(x=>x.id===id);
+  if(!p) return;
+  document.getElementById('pengurusId').value = p.id;
+  document.getElementById('pengurusNama').value = p.nama;
+  document.getElementById('pengurusJabatan').value = p.jabatan;
+  document.getElementById('pengurusPersen').value = p.persen_insentif;
+  document.getElementById('pengurusFormTitle').textContent = 'Edit Pengurus';
+  document.getElementById('pengurusCancelEdit').style.display = 'inline-block';
+  window.scrollTo(0,0);
+};
+window.deletePengurus = async function(id){
+  if(!confirm('Hapus pengurus ini?')) return;
+  const { error } = await sb.from('pengurus').delete().eq('id', id);
+  if(error){ toast('Gagal hapus: ' + error.message); return; }
+  await loadAll();
+  renderPengurusSection();
+  toast('Pengurus dihapus');
+};
+document.getElementById('pengurusCancelEdit').addEventListener('click', ()=>{
+  document.getElementById('pengurusForm').reset();
+  document.getElementById('pengurusId').value = '';
+  document.getElementById('pengurusFormTitle').textContent = 'Tambah Pengurus';
+  document.getElementById('pengurusCancelEdit').style.display = 'none';
+});
+
+/* ====== SETORAN PADES/PAK ====== */
+function labelPades(){
+  return SETTINGS.istilahPades === 'PAK' ? 'PAK (Pendapatan Asli Kampung)' : 'PADes (Pendapatan Asli Desa)';
+}
+function frekuensiLabel(freq){
+  return {bulanan:'Bulanan', semester:'Per 6 Bulan (Semester)', tahunan:'Tahunan'}[freq] || 'Bulanan';
+}
+let setoranSeharusnyaValue = 0;
+function renderSetoranSection(){
+  document.getElementById('setoranFormTitle').textContent = 'Catat Setoran — ' + labelPades();
+  const wrap = document.getElementById('setoranTableWrap');
+  if(STATE.setoran.length===0){
+    wrap.innerHTML = '<div class="empty">Belum ada riwayat setoran.</div>';
+    return;
+  }
+  let html = '<table><thead><tr><th>Periode</th><th class="num">Seharusnya</th><th>Tgl Setor</th><th class="num">Disetor</th><th>Status</th><th>Keterangan</th><th></th></tr></thead><tbody>';
+  STATE.setoran.forEach(s=>{
+    const seharusnya = Number(s.jumlah_seharusnya)||0;
+    const disetor = Number(s.jumlah_disetor)||0;
+    let statusTxt, statusColor;
+    if(!s.tanggal_setor || disetor===0){ statusTxt = 'Belum Disetor'; statusColor = 'var(--danger)'; }
+    else if(disetor >= seharusnya){ statusTxt = 'Lunas'; statusColor = 'var(--primary)'; }
+    else { statusTxt = 'Kurang Setor'; statusColor = 'var(--accent)'; }
+    html += `<tr>
+      <td>${fmtDateID(s.periode_dari)} — ${fmtDateID(s.periode_sampai)}</td>
+      <td class="num">${fmtRp(seharusnya)}</td>
+      <td>${s.tanggal_setor ? fmtDateID(s.tanggal_setor) : '-'}</td>
+      <td class="num">${fmtRp(disetor)}</td>
+      <td><span class="badge" style="background:${statusColor};color:#fff">${statusTxt}</span></td>
+      <td>${s.keterangan||'-'}</td>
+      <td class="row-actions">
+        <button class="btn small secondary" onclick="editSetoran('${s.id}')">Edit</button>
+        <button class="btn small danger" onclick="deleteSetoran('${s.id}')">Hapus</button>
+      </td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+document.getElementById('btnIsiPeriodeBerikutnya').addEventListener('click', ()=>{
+  const freq = SETTINGS.frekuensiSetoran;
+  const bulanN = freq==='bulanan' ? 1 : (freq==='semester' ? 6 : 12);
+  let dariBaru;
+  if(STATE.setoran.length > 0){
+    const terakhir = STATE.setoran.slice().sort((a,b)=>(b.periode_sampai||'').localeCompare(a.periode_sampai||''))[0];
+    const d = new Date(terakhir.periode_sampai+'T00:00:00'); d.setDate(d.getDate()+1);
+    dariBaru = d.toISOString().slice(0,10);
+  } else {
+    const now = new Date();
+    if(freq==='bulanan') dariBaru = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+    else if(freq==='semester') dariBaru = now.getMonth() < 6 ? `${now.getFullYear()}-01-01` : `${now.getFullYear()}-07-01`;
+    else dariBaru = `${now.getFullYear()}-01-01`;
+  }
+  document.getElementById('setoranDari').value = dariBaru;
+  const dSampai = new Date(dariBaru+'T00:00:00');
+  dSampai.setMonth(dSampai.getMonth()+bulanN);
+  dSampai.setDate(dSampai.getDate()-1);
+  document.getElementById('setoranSampai').value = dSampai.toISOString().slice(0,10);
+  document.getElementById('setoranSeharusnyaTxt').textContent = '';
+  setoranSeharusnyaValue = 0;
+});
+document.getElementById('btnHitungSeharusnya').addEventListener('click', ()=>{
+  const dari = document.getElementById('setoranDari').value;
+  const sampai = document.getElementById('setoranSampai').value;
+  if(!dari || !sampai){ toast('Isi Periode Dari dan Sampai dahulu'); return; }
+  const { pendapatan, beban } = hitungLabaRugiPeriode(dari, sampai);
+  const bebanPenyusutan = totalBebanPenyusutanPeriode(dari, sampai);
+  const laba = pendapatan - beban - bebanPenyusutan;
+  const dasar = laba > 0 ? laba : 0;
+  setoranSeharusnyaValue = dasar * SETTINGS.padesPercent / 100;
+  document.getElementById('setoranSeharusnyaTxt').textContent = `${labelPades()} seharusnya: ${fmtRp(setoranSeharusnyaValue)} (${SETTINGS.padesPercent}% dari laba periode ini)`;
+  if(!document.getElementById('setoranJumlahDisetor').value){
+    document.getElementById('setoranJumlahDisetor').value = Math.round(setoranSeharusnyaValue);
+  }
+});
+document.getElementById('setoranForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const id = document.getElementById('setoranId').value;
+  const obj = {
+    periode_dari: document.getElementById('setoranDari').value,
+    periode_sampai: document.getElementById('setoranSampai').value,
+    jumlah_seharusnya: setoranSeharusnyaValue || Number(document.getElementById('setoranJumlahDisetor').value)||0,
+    tanggal_setor: document.getElementById('setoranTanggalSetor').value || null,
+    jumlah_disetor: Number(document.getElementById('setoranJumlahDisetor').value)||0,
+    keterangan: document.getElementById('setoranKeterangan').value.trim()
+  };
+  let error;
+  if(id){
+    ({ error } = await sb.from('setoran_pades').update(obj).eq('id', id));
+  } else {
+    ({ error } = await sb.from('setoran_pades').insert(obj));
+  }
+  if(error){ toast('Gagal simpan: ' + error.message); return; }
+  document.getElementById('setoranForm').reset();
+  document.getElementById('setoranId').value = '';
+  document.getElementById('setoranSeharusnyaTxt').textContent = '';
+  setoranSeharusnyaValue = 0;
+  document.getElementById('setoranCancelEdit').style.display = 'none';
+  await loadAll();
+  renderSetoranSection();
+  toast('Setoran disimpan');
+});
+window.editSetoran = function(id){
+  const s = STATE.setoran.find(x=>x.id===id);
+  if(!s) return;
+  document.getElementById('setoranId').value = s.id;
+  document.getElementById('setoranDari').value = s.periode_dari;
+  document.getElementById('setoranSampai').value = s.periode_sampai;
+  setoranSeharusnyaValue = Number(s.jumlah_seharusnya)||0;
+  document.getElementById('setoranSeharusnyaTxt').textContent = `${labelPades()} seharusnya: ${fmtRp(setoranSeharusnyaValue)}`;
+  document.getElementById('setoranTanggalSetor').value = s.tanggal_setor || '';
+  document.getElementById('setoranJumlahDisetor').value = s.jumlah_disetor || 0;
+  document.getElementById('setoranKeterangan').value = s.keterangan || '';
+  document.getElementById('setoranCancelEdit').style.display = 'inline-block';
+  window.scrollTo(0,0);
+};
+window.deleteSetoran = async function(id){
+  if(!confirm('Hapus riwayat setoran ini?')) return;
+  const { error } = await sb.from('setoran_pades').delete().eq('id', id);
+  if(error){ toast('Gagal hapus: ' + error.message); return; }
+  await loadAll();
+  renderSetoranSection();
+  toast('Setoran dihapus');
+};
+document.getElementById('setoranCancelEdit').addEventListener('click', ()=>{
+  document.getElementById('setoranForm').reset();
+  document.getElementById('setoranId').value = '';
+  document.getElementById('setoranSeharusnyaTxt').textContent = '';
+  setoranSeharusnyaValue = 0;
+  document.getElementById('setoranCancelEdit').style.display = 'none';
 });
 
 /* ====== LAPORAN ====== */
