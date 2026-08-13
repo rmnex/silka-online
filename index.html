@@ -103,6 +103,7 @@ td{padding:7px 8px;border-bottom:1px solid var(--border);}
   <button data-sec="transaksi">Transaksi</button>
   <button data-sec="unitusaha">Unit Usaha</button>
   <button data-sec="akun">Akun</button>
+  <button data-sec="aset">Aset</button>
   <button data-sec="laporan">Laporan</button>
 </nav>
 <main>
@@ -216,6 +217,45 @@ td{padding:7px 8px;border-bottom:1px solid var(--border);}
     </div>
   </div>
 
+  <!-- ASET -->
+  <div class="section" id="sec-aset">
+    <div class="card">
+      <h2 id="asetFormTitle">Tambah Aset</h2>
+      <form id="asetForm">
+        <input type="hidden" id="asetId">
+        <div class="grid cols2">
+          <div class="field"><label>Nama Aset</label><input type="text" id="asetNama" placeholder="cth: Mini Excavator" required></div>
+          <div class="field"><label>Unit Usaha (opsional)</label><select id="asetUnit"><option value="">— Tidak terikat unit tertentu —</option></select></div>
+        </div>
+        <div class="field" style="margin-bottom:12px"><label>Sumber Perolehan</label>
+          <select id="asetSumber">
+            <option value="kas">Dibeli dengan Kas BUMKA</option>
+            <option value="modal">Penyertaan Modal / Hibah (serah terima, tanpa transaksi kas)</option>
+          </select>
+        </div>
+        <div class="grid cols2">
+          <div class="field"><label>Tanggal Perolehan</label><input type="date" id="asetTanggalBeli" required></div>
+          <div class="field"><label>Harga Perolehan (Rp)</label><input type="number" id="asetHarga" min="0" step="1" required></div>
+        </div>
+        <div class="grid cols2">
+          <div class="field"><label>Umur Manfaat (tahun)</label><input type="number" id="asetUmur" min="1" step="1" value="4" required></div>
+          <div class="field"><label>Nilai Residu / Sisa (Rp)</label><input type="number" id="asetResidu" min="0" step="1" value="0"></div>
+        </div>
+        <button type="button" class="btn secondary small" id="btnTogglePanduanUmur" style="margin-bottom:12px">📖 Lihat Panduan Umur Manfaat</button>
+        <div id="panduanUmurWrap" style="display:none"></div>
+        <p class="hint" id="asetHintPencatatan">Penting: catat juga pengeluaran kas untuk beli aset ini lewat menu Transaksi, pakai akun bertipe "Aset" — BUKAN akun Beban, supaya tidak terhitung dobel.</p>
+        <div class="row-actions">
+          <button type="submit" class="btn">Simpan</button>
+          <button type="button" class="btn secondary" id="asetCancelEdit" style="display:none">Batal Edit</button>
+        </div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Daftar Aset &amp; Nilai Buku</h2>
+      <div id="asetTableWrap"></div>
+    </div>
+  </div>
+
   <!-- LAPORAN -->
   <div class="section" id="sec-laporan">
     <div class="card">
@@ -251,7 +291,7 @@ const SUPABASE_URL = 'https://tozjvshvswbqrrkkdify.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_USqAxJ4gwA6mNAk4CgKW0Q_psMrx0FO';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let STATE = { unitusaha: [], akun: [], transaksi: [] };
+let STATE = { unitusaha: [], akun: [], transaksi: [], aset: [] };
 let currentUser = null;
 
 function toast(msg){
@@ -341,14 +381,16 @@ document.getElementById('lapModalAwal').addEventListener('change', async (e)=>{
 
 /* ====== LOAD DATA ====== */
 async function loadAll(){
-  const [u, a, t] = await Promise.all([
+  const [u, a, t, as] = await Promise.all([
     sb.from('unit_usaha').select('*').order('nama'),
     sb.from('akun').select('*').order('kode'),
-    sb.from('transaksi').select('*').order('tanggal', {ascending:false})
+    sb.from('transaksi').select('*').order('tanggal', {ascending:false}),
+    sb.from('aset').select('*').order('tanggal_beli')
   ]);
   STATE.unitusaha = u.data || [];
   STATE.akun = a.data || [];
   STATE.transaksi = t.data || [];
+  STATE.aset = as.data || [];
 }
 
 /* ====== REALTIME ====== */
@@ -369,6 +411,11 @@ function setupRealtime(){
       populateAkunSelect();
       refreshActiveSection();
     })
+    .on('postgres_changes', {event:'*', schema:'public', table:'aset'}, async ()=>{
+      await loadAll();
+      refreshActiveSection();
+      toast('Data aset diperbarui');
+    })
     .subscribe((status)=>{
       const dot = document.getElementById('connDot');
       const txt = document.getElementById('connTxt');
@@ -384,6 +431,7 @@ function refreshActiveSection(){
   if(sec==='transaksi') renderTransaksiSection();
   if(sec==='unitusaha') renderUnitUsahaSection();
   if(sec==='akun') renderAkunSection();
+  if(sec==='aset') renderAsetSection();
 }
 
 /* ====== NAVIGASI ====== */
@@ -410,15 +458,20 @@ function getAkun(id){
   return STATE.akun.find(x=>x.id===id);
 }
 function populateUnitSelects(){
-  const sel = document.getElementById('txUnit');
-  const cur = sel.value;
-  sel.innerHTML = '';
-  STATE.unitusaha.forEach(u=>{
-    const opt = document.createElement('option');
-    opt.value = u.id; opt.textContent = u.nama;
-    sel.appendChild(opt);
+  ['txUnit','asetUnit'].forEach(id=>{
+    const sel = document.getElementById(id);
+    const firstOpt = sel.querySelector('option');
+    const keepFirst = (firstOpt && firstOpt.value === '') ? firstOpt : null;
+    const cur = sel.value;
+    sel.innerHTML = '';
+    if(keepFirst) sel.appendChild(keepFirst.cloneNode(true));
+    STATE.unitusaha.forEach(u=>{
+      const opt = document.createElement('option');
+      opt.value = u.id; opt.textContent = u.nama;
+      sel.appendChild(opt);
+    });
+    if(cur) sel.value = cur;
   });
-  if(cur) sel.value = cur;
 }
 function populateAkunSelect(){
   const sel = document.getElementById('txAkun');
@@ -688,6 +741,187 @@ document.getElementById('akunCancelEdit').addEventListener('click', ()=>{
   document.getElementById('akunCancelEdit').style.display = 'none';
 });
 
+/* ====== ASET & PENYUSUTAN ====== */
+function bulanBerjalan(tanggalBeli, sampai){
+  const d1 = new Date(tanggalBeli+'T00:00:00');
+  const d2 = new Date(sampai+'T00:00:00');
+  if(d2 < d1) return 0;
+  let bulan = (d2.getFullYear()-d1.getFullYear())*12 + (d2.getMonth()-d1.getMonth());
+  if(d2.getDate() >= d1.getDate()) bulan += 1; // bulan berjalan dihitung penuh
+  return Math.max(0, bulan);
+}
+function akumulasiPenyusutan(a, sampai){
+  const umurBulan = Number(a.umur_manfaat_tahun) * 12;
+  const nilaiSusut = Number(a.harga_perolehan) - Number(a.nilai_residu||0);
+  const perBulan = umurBulan > 0 ? nilaiSusut / umurBulan : 0;
+  const bulan = Math.min(bulanBerjalan(a.tanggal_beli, sampai), umurBulan);
+  return Math.max(0, Math.min(perBulan * bulan, nilaiSusut));
+}
+function nilaiBukuAset(a, sampai){
+  return Number(a.harga_perolehan) - akumulasiPenyusutan(a, sampai);
+}
+function bebanPenyusutanPeriode(a, dari, sampai){
+  if(a.tanggal_beli > sampai) return 0;
+  const akumSampai = akumulasiPenyusutan(a, sampai);
+  const hariSblmDari = new Date(dari+'T00:00:00'); hariSblmDari.setDate(hariSblmDari.getDate()-1);
+  const akumSblmDari = akumulasiPenyusutan(a, hariSblmDari.toISOString().slice(0,10));
+  return Math.max(0, akumSampai - akumSblmDari);
+}
+function totalAsetTetap(sampai){
+  let totalPerolehan=0, totalAkumulasi=0;
+  STATE.aset.forEach(a=>{
+    if(a.tanggal_beli > sampai) return;
+    totalPerolehan += Number(a.harga_perolehan);
+    totalAkumulasi += akumulasiPenyusutan(a, sampai);
+  });
+  return { totalPerolehan, totalAkumulasi, nilaiBuku: totalPerolehan-totalAkumulasi };
+}
+function totalModalDariAset(sampai){
+  let total = 0;
+  STATE.aset.forEach(a=>{
+    if(a.sumber_perolehan !== 'modal') return;
+    if(a.tanggal_beli > sampai) return;
+    total += Number(a.harga_perolehan);
+  });
+  return total;
+}
+function totalBebanPenyusutanPeriode(dari, sampai){
+  let total = 0;
+  STATE.aset.forEach(a=> total += bebanPenyusutanPeriode(a, dari, sampai));
+  return total;
+}
+
+function updateAsetHint(){
+  const sumber = document.getElementById('asetSumber').value;
+  document.getElementById('asetHintPencatatan').textContent = sumber==='modal'
+    ? 'Ini aset yang diserahterimakan sebagai penyertaan modal/hibah (bukan dibeli BUMKA). Tidak perlu catat transaksi kas apa pun — nilainya otomatis masuk ke Modal di Neraca supaya tetap balance.'
+    : 'Penting: catat juga pengeluaran kas untuk beli aset ini lewat menu Transaksi, pakai akun bertipe "Aset" — BUKAN akun Beban, supaya tidak terhitung dobel.';
+}
+document.getElementById('asetSumber').addEventListener('change', updateAsetHint);
+
+function renderPanduanUmurHtml(){
+  return `<div class="card" style="background:var(--primary-light);border:none;margin-bottom:14px">
+    <h3 style="margin-top:0">Panduan Umur Manfaat Aset (Referensi)</h3>
+    <table style="margin-bottom:10px"><thead><tr><th>Kelompok</th><th class="num">Umur</th><th>Contoh</th></tr></thead><tbody>
+      <tr><td>Kelompok 1</td><td class="num">4 tahun</td><td>Peralatan kantor ringan, alat kerja kecil</td></tr>
+      <tr><td>Kelompok 2</td><td class="num">8 tahun</td><td>Kendaraan, mesin ringan</td></tr>
+      <tr><td>Kelompok 3</td><td class="num">16 tahun</td><td>Mesin/alat berat industri</td></tr>
+      <tr><td>Bangunan tidak permanen</td><td class="num">10 tahun</td><td>Kios semi permanen</td></tr>
+      <tr><td>Bangunan permanen</td><td class="num">20 tahun</td><td>Bangunan pasar/kantor beton</td></tr>
+    </tbody></table>
+    <p class="hint" style="margin-top:6px"><strong>Sumber hukum:</strong> Peraturan Menteri Keuangan Nomor 96/PMK.03/2009.</p>
+    <p class="hint" style="color:var(--danger)"><strong>Disclaimer:</strong> PMK ini sendiri sudah tidak berlaku/digantikan — pendelegasian pengelompokan aset kini melalui UU HPP dan menunggu Peraturan Pemerintah pelaksana. Tabel ini masih umum dipakai sebagai acuan transisi. Konfirmasikan ke KPP Pratama setempat atau konsultan pajak untuk kepastian, terutama untuk keperluan pajak resmi.</p>
+  </div>`;
+}
+document.getElementById('btnTogglePanduanUmur').addEventListener('click', ()=>{
+  const wrap = document.getElementById('panduanUmurWrap');
+  if(wrap.style.display === 'none'){
+    wrap.innerHTML = renderPanduanUmurHtml();
+    wrap.style.display = 'block';
+  } else {
+    wrap.style.display = 'none';
+  }
+});
+
+function renderAsetSection(){
+  populateUnitSelects();
+  if(!document.getElementById('asetTanggalBeli').value) document.getElementById('asetTanggalBeli').value = todayStr();
+  updateAsetHint();
+  const wrap = document.getElementById('asetTableWrap');
+  if(STATE.aset.length===0){
+    wrap.innerHTML = '<div class="empty">Belum ada aset. Tambahkan aset tetap seperti kendaraan, mesin, atau peralatan besar.</div>';
+    return;
+  }
+  const today = todayStr();
+  let html = '<table><thead><tr><th>Nama Aset</th><th>Unit</th><th>Sumber</th><th>Tgl Perolehan</th><th class="num">Harga Perolehan</th><th class="num">Akum. Penyusutan</th><th class="num">Nilai Buku</th><th></th></tr></thead><tbody>';
+  let totalPerolehan=0, totalAkum=0, totalBuku=0;
+  STATE.aset.forEach(a=>{
+    const akum = akumulasiPenyusutan(a, today);
+    const buku = nilaiBukuAset(a, today);
+    totalPerolehan += Number(a.harga_perolehan);
+    totalAkum += akum;
+    totalBuku += buku;
+    const sumberLabel = a.sumber_perolehan==='modal' ? 'Penyertaan Modal' : 'Kas';
+    html += `<tr>
+      <td>${a.nama}</td>
+      <td>${a.unit_id ? getUnitNama(a.unit_id) : '-'}</td>
+      <td><span class="badge ${a.sumber_perolehan==='modal'?'pos':''}">${sumberLabel}</span></td>
+      <td>${fmtDateID(a.tanggal_beli)}</td>
+      <td class="num">${fmtRp(a.harga_perolehan)}</td>
+      <td class="num">${fmtRp(akum)}</td>
+      <td class="num">${fmtRp(buku)}</td>
+      <td class="row-actions">
+        <button class="btn small secondary" onclick="editAset('${a.id}')">Edit</button>
+        <button class="btn small danger" onclick="deleteAset('${a.id}')">Hapus</button>
+      </td>
+    </tr>`;
+  });
+  html += `<tr><td colspan="4" style="font-weight:700">TOTAL</td><td class="num" style="font-weight:700">${fmtRp(totalPerolehan)}</td><td class="num" style="font-weight:700">${fmtRp(totalAkum)}</td><td class="num" style="font-weight:700">${fmtRp(totalBuku)}</td><td></td></tr>`;
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+document.getElementById('asetForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const id = document.getElementById('asetId').value;
+  const obj = {
+    nama: document.getElementById('asetNama').value.trim(),
+    unit_id: document.getElementById('asetUnit').value || null,
+    sumber_perolehan: document.getElementById('asetSumber').value,
+    tanggal_beli: document.getElementById('asetTanggalBeli').value,
+    harga_perolehan: Number(document.getElementById('asetHarga').value),
+    umur_manfaat_tahun: Number(document.getElementById('asetUmur').value),
+    nilai_residu: Number(document.getElementById('asetResidu').value)||0
+  };
+  let error;
+  if(id){
+    ({ error } = await sb.from('aset').update(obj).eq('id', id));
+  } else {
+    ({ error } = await sb.from('aset').insert(obj));
+  }
+  if(error){ toast('Gagal simpan: ' + error.message); return; }
+  document.getElementById('asetForm').reset();
+  document.getElementById('asetId').value = '';
+  document.getElementById('asetTanggalBeli').value = todayStr();
+  document.getElementById('asetFormTitle').textContent = 'Tambah Aset';
+  document.getElementById('asetCancelEdit').style.display = 'none';
+  updateAsetHint();
+  await loadAll();
+  renderAsetSection();
+  toast('Aset disimpan');
+});
+window.editAset = function(id){
+  const a = STATE.aset.find(x=>x.id===id);
+  if(!a) return;
+  document.getElementById('asetId').value = a.id;
+  document.getElementById('asetNama').value = a.nama;
+  document.getElementById('asetUnit').value = a.unit_id || '';
+  document.getElementById('asetSumber').value = a.sumber_perolehan;
+  document.getElementById('asetTanggalBeli').value = a.tanggal_beli;
+  document.getElementById('asetHarga').value = a.harga_perolehan;
+  document.getElementById('asetUmur').value = a.umur_manfaat_tahun;
+  document.getElementById('asetResidu').value = a.nilai_residu;
+  document.getElementById('asetFormTitle').textContent = 'Edit Aset';
+  document.getElementById('asetCancelEdit').style.display = 'inline-block';
+  updateAsetHint();
+  window.scrollTo(0,0);
+};
+window.deleteAset = async function(id){
+  if(!confirm('Hapus aset ini?')) return;
+  const { error } = await sb.from('aset').delete().eq('id', id);
+  if(error){ toast('Gagal hapus: ' + error.message); return; }
+  await loadAll();
+  renderAsetSection();
+  toast('Aset dihapus');
+};
+document.getElementById('asetCancelEdit').addEventListener('click', ()=>{
+  document.getElementById('asetForm').reset();
+  document.getElementById('asetId').value = '';
+  document.getElementById('asetTanggalBeli').value = todayStr();
+  document.getElementById('asetFormTitle').textContent = 'Tambah Aset';
+  document.getElementById('asetCancelEdit').style.display = 'none';
+  updateAsetHint();
+});
+
 /* ====== LAPORAN ====== */
 document.getElementById('lapJenis').addEventListener('change', ()=>{
   document.getElementById('lapOutput').innerHTML = '';
@@ -710,7 +944,10 @@ function hitungLabaRugiPeriode(dari, sampai){
 }
 
 function renderLaporanLabaRugi(dari, sampai){
-  const { pendapatan, beban, laba, list } = hitungLabaRugiPeriode(dari, sampai);
+  const { pendapatan, beban, list } = hitungLabaRugiPeriode(dari, sampai);
+  const bebanPenyusutan = totalBebanPenyusutanPeriode(dari, sampai);
+  const totalBeban = beban + bebanPenyusutan;
+  const laba = pendapatan - totalBeban;
   // rincian per akun
   const akunPendapatan = {}, akunBeban = {};
   list.forEach(t=>{
@@ -730,7 +967,10 @@ function renderLaporanLabaRugi(dari, sampai){
   Object.entries(akunBeban).forEach(([nama,v])=>{
     html += `<tr><td style="padding-left:20px">${nama}</td><td class="num">${fmtRp(v)}</td></tr>`;
   });
-  html += `<tr><td style="font-weight:700">Jumlah Beban</td><td class="num" style="font-weight:700">${fmtRp(beban)}</td></tr>
+  if(bebanPenyusutan > 0){
+    html += `<tr><td style="padding-left:20px">Beban Penyusutan Aset</td><td class="num">${fmtRp(bebanPenyusutan)}</td></tr>`;
+  }
+  html += `<tr><td style="font-weight:700">Jumlah Beban</td><td class="num" style="font-weight:700">${fmtRp(totalBeban)}</td></tr>
       <tr><td style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">LABA (RUGI) BERSIH</td><td class="num" style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">${fmtRp(laba)}</td></tr>
     </tbody></table>`;
   document.getElementById('lapOutput').innerHTML = html;
@@ -742,31 +982,41 @@ function renderLaporanNeraca(sampai){
   const kasKeluar = listSD.filter(t=>t.jenis==='keluar').reduce((s,t)=>s+Number(t.jumlah),0);
   const modalAwal = SETTINGS.modalAwal || 0;
   const saldoKas = modalAwal + kasMasuk - kasKeluar;
-  const labaDitahan = kasMasuk - kasKeluar; // laba akumulasi sejak awal jadi bagian ekuitas
-  const totalAset = saldoKas;
+  const { totalPerolehan: asetPerolehan, totalAkumulasi: asetAkumulasi, nilaiBuku: asetNilaiBuku } = totalAsetTetap(sampai);
+  const modalDariAset = totalModalDariAset(sampai);
+  const labaDitahan = (kasMasuk - kasKeluar) - asetAkumulasi; // laba akumulasi dikurangi beban penyusutan non-kas
+  const totalAset = saldoKas + asetNilaiBuku;
   const totalKewajiban = 0;
-  const totalEkuitas = modalAwal + labaDitahan;
+  const totalEkuitas = modalAwal + modalDariAset + labaDitahan;
   let html = `<h2 style="text-align:center">NERACA</h2>
     <p style="text-align:center;color:var(--text-mut);font-size:12.5px;margin-bottom:16px">Per Tanggal ${fmtDateID(sampai)}</p>
     <div class="grid cols2">
     <div><table><tbody>
       <tr><td colspan="2" style="font-weight:700;background:var(--primary-light)">ASET</td></tr>
-      <tr><td style="padding-left:20px">Kas &amp; Bank</td><td class="num">${fmtRp(saldoKas)}</td></tr>
-      <tr><td style="font-weight:700">JUMLAH ASET</td><td class="num" style="font-weight:700">${fmtRp(totalAset)}</td></tr>
+      <tr><td style="padding-left:20px">Kas &amp; Bank</td><td class="num">${fmtRp(saldoKas)}</td></tr>`;
+  if(asetPerolehan > 0){
+    html += `<tr><td style="padding-left:20px">Aset Tetap (Harga Perolehan)</td><td class="num">${fmtRp(asetPerolehan)}</td></tr>
+      <tr><td style="padding-left:20px">Akumulasi Penyusutan</td><td class="num">(${fmtRp(asetAkumulasi)})</td></tr>
+      <tr><td style="padding-left:20px;font-weight:600">Nilai Buku Aset Tetap</td><td class="num" style="font-weight:600">${fmtRp(asetNilaiBuku)}</td></tr>`;
+  }
+  html += `<tr><td style="font-weight:700">JUMLAH ASET</td><td class="num" style="font-weight:700">${fmtRp(totalAset)}</td></tr>
     </tbody></table></div>
     <div><table><tbody>
       <tr><td colspan="2" style="font-weight:700;background:var(--primary-light)">KEWAJIBAN</td></tr>
       <tr><td style="padding-left:20px">Hutang Usaha</td><td class="num">${fmtRp(totalKewajiban)}</td></tr>
       <tr><td style="font-weight:700">JUMLAH KEWAJIBAN</td><td class="num" style="font-weight:700">${fmtRp(totalKewajiban)}</td></tr>
       <tr><td colspan="2" style="font-weight:700;background:var(--primary-light);padding-top:14px">EKUITAS</td></tr>
-      <tr><td style="padding-left:20px">Modal Awal</td><td class="num">${fmtRp(modalAwal)}</td></tr>
-      <tr><td style="padding-left:20px">Laba Ditahan Berjalan</td><td class="num">${fmtRp(labaDitahan)}</td></tr>
+      <tr><td style="padding-left:20px">Modal Awal</td><td class="num">${fmtRp(modalAwal)}</td></tr>`;
+  if(modalDariAset > 0){
+    html += `<tr><td style="padding-left:20px">Penyertaan Modal (Aset Non-Tunai)</td><td class="num">${fmtRp(modalDariAset)}</td></tr>`;
+  }
+  html += `<tr><td style="padding-left:20px">Laba Ditahan Berjalan</td><td class="num">${fmtRp(labaDitahan)}</td></tr>
       <tr><td style="font-weight:700">JUMLAH EKUITAS</td><td class="num" style="font-weight:700">${fmtRp(totalEkuitas)}</td></tr>
       <tr><td style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">JUMLAH KEWAJIBAN &amp; EKUITAS</td><td class="num" style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">${fmtRp(totalKewajiban+totalEkuitas)}</td></tr>
     </tbody></table></div>
     </div>`;
   if(Math.round(totalAset) !== Math.round(totalKewajiban+totalEkuitas)){
-    html += `<p style="color:var(--danger);font-size:12px;margin-top:10px">⚠ Neraca belum balance. Cek kembali data transaksi dan Modal Awal.</p>`;
+    html += `<p style="color:var(--danger);font-size:12px;margin-top:10px">⚠ Neraca belum balance. Cek kembali data transaksi, Modal Awal, dan Sumber Perolehan aset.</p>`;
   }
   document.getElementById('lapOutput').innerHTML = html;
 }
@@ -793,7 +1043,10 @@ function renderLaporanArusKas(dari, sampai){
 }
 
 function renderLaporanCALK(dari, sampai){
-  const { pendapatan, beban, laba, list } = hitungLabaRugiPeriode(dari, sampai);
+  const { pendapatan, beban, list } = hitungLabaRugiPeriode(dari, sampai);
+  const bebanPenyusutan = totalBebanPenyusutanPeriode(dari, sampai);
+  const totalBeban = beban + bebanPenyusutan;
+  const laba = pendapatan - totalBeban;
   const perUnit = {};
   STATE.unitusaha.forEach(u=> perUnit[u.nama] = {p:0,b:0});
   list.forEach(t=>{
@@ -805,16 +1058,21 @@ function renderLaporanCALK(dari, sampai){
   let html = `<h2 style="text-align:center">CATATAN ATAS LAPORAN KEUANGAN (CALK)</h2>
     <p style="text-align:center;color:var(--text-mut);font-size:12.5px;margin-bottom:16px">Periode ${fmtDateID(dari)} s.d. ${fmtDateID(sampai)}</p>
     <h3 style="color:var(--primary-dark);margin-bottom:8px">1. Dasar Penyusunan</h3>
-    <p style="font-size:13px;margin-bottom:14px">Laporan disusun berdasarkan basis kas (cash basis), mencatat transaksi pada saat kas diterima atau dikeluarkan.</p>
+    <p style="font-size:13px;margin-bottom:14px">Laporan disusun berdasarkan basis kas (cash basis) untuk pendapatan dan beban operasional, dengan penyusutan aset tetap dihitung menggunakan metode garis lurus (straight-line).</p>
     <h3 style="color:var(--primary-dark);margin-bottom:8px">2. Rincian Pendapatan &amp; Beban per Unit Usaha</h3>
     <table style="margin-bottom:14px"><thead><tr><th>Unit Usaha</th><th class="num">Pendapatan</th><th class="num">Beban</th><th class="num">Laba/Rugi</th></tr></thead><tbody>`;
   Object.entries(perUnit).forEach(([nama,v])=>{
     html += `<tr><td>${nama}</td><td class="num">${fmtRp(v.p)}</td><td class="num">${fmtRp(v.b)}</td><td class="num">${fmtRp(v.p-v.b)}</td></tr>`;
   });
-  html += `</tbody></table>
-    <h3 style="color:var(--primary-dark);margin-bottom:8px">3. Ringkasan</h3>
+  html += `</tbody></table>`;
+  if(STATE.aset.length > 0){
+    const { totalPerolehan, totalAkumulasi, nilaiBuku } = totalAsetTetap(sampai);
+    html += `<h3 style="color:var(--primary-dark);margin-bottom:8px">3. Aset Tetap &amp; Penyusutan</h3>
+    <p style="font-size:13px;margin-bottom:14px">Jumlah aset tetap terdaftar: <strong>${STATE.aset.length}</strong> unit. Total harga perolehan: <strong>${fmtRp(totalPerolehan)}</strong>. Akumulasi penyusutan s.d. ${fmtDateID(sampai)}: <strong>${fmtRp(totalAkumulasi)}</strong>. Nilai buku bersih: <strong>${fmtRp(nilaiBuku)}</strong>. Beban penyusutan periode ini: <strong>${fmtRp(bebanPenyusutan)}</strong>.</p>`;
+  }
+  html += `<h3 style="color:var(--primary-dark);margin-bottom:8px">${STATE.aset.length>0?'4':'3'}. Ringkasan</h3>
     <p style="font-size:13px">Total Pendapatan periode ini: <strong>${fmtRp(pendapatan)}</strong><br>
-    Total Beban periode ini: <strong>${fmtRp(beban)}</strong><br>
+    Total Beban periode ini (termasuk penyusutan): <strong>${fmtRp(totalBeban)}</strong><br>
     Laba (Rugi) Bersih: <strong>${fmtRp(laba)}</strong><br>
     Jumlah Unit Usaha aktif: <strong>${STATE.unitusaha.length}</strong><br>
     Jumlah Akun terdaftar: <strong>${STATE.akun.length}</strong></p>`;
