@@ -76,6 +76,7 @@ td{padding:7px 8px;border-bottom:1px solid var(--border);}
 .toast.show{opacity:1;}
 #appWrap{display:none;}
 .doc-preview{background:#fff;border:1px solid var(--border);border-radius:10px;padding:26px;max-width:520px;margin:0 auto;}
+.doc-preview.doc-kwitansi{max-width:680px;}
 .doc-preview .kop{display:flex;align-items:center;gap:14px;margin-bottom:18px;border-bottom:2px solid var(--primary);padding-bottom:12px;}
 .doc-preview .kop img{width:56px;height:56px;object-fit:contain;flex-shrink:0;}
 .doc-preview .kop .kop-text{flex:1;text-align:center;}
@@ -83,6 +84,16 @@ td{padding:7px 8px;border-bottom:1px solid var(--border);}
 .doc-preview .kop .kampung-line{font-size:13px;color:var(--text);font-weight:600;}
 .doc-preview .kop .addr{font-size:11px;color:var(--text-mut);margin-top:1px;}
 .doc-preview .doctitle{text-align:center;font-weight:800;font-size:16px;letter-spacing:1px;margin:14px 0;text-decoration:underline;}
+.kw-wrap{display:flex;gap:20px;align-items:stretch;}
+.kw-nomor{font-size:12px;text-align:right;margin-bottom:8px;}
+.kw-fields{flex:1;}
+.kw-row{display:flex;margin-bottom:14px;font-size:13.5px;}
+.kw-row .kw-label{width:150px;flex-shrink:0;}
+.kw-row .kw-colon{width:14px;flex-shrink:0;}
+.kw-row .kw-value{flex:1;border-bottom:1px dotted #999;padding-bottom:2px;min-height:18px;}
+.kw-amount-box{width:170px;flex-shrink:0;border:2px solid var(--text);border-radius:6px;padding:14px 10px;text-align:center;display:flex;flex-direction:column;justify-content:center;}
+.kw-amount-box .lbl{font-size:10px;color:var(--text-mut);text-transform:uppercase;margin-bottom:6px;}
+.kw-amount-box .val{font-size:19px;font-weight:800;color:var(--primary-dark);word-break:break-word;}
 .doc-preview table{width:100%;font-size:13px;}
 .doc-preview .ttd{margin-top:40px;text-align:right;font-size:13px;}
 .doc-preview .ttd .line{margin-top:50px;border-top:1px solid var(--text);display:inline-block;padding-top:4px;min-width:160px;}
@@ -123,7 +134,7 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
       <button type="submit" class="btn" style="width:100%">Masuk</button>
       <div id="loginError"></div>
     </form>
-    <p style="font-size:11px;color:var(--text-mut);text-align:center;margin-top:18px">Akun dibuat oleh admin lewat Supabase Dashboard. Hubungi admin BUMKA kalau belum punya akun.</p>
+    <p style="font-size:11px;color:var(--text-mut);text-align:center;margin-top:18px">Akun dibuat oleh admin. Hubungi admin BUMKA apabila belum memiliki akun.</p>
   </div>
 </div>
 
@@ -427,7 +438,7 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
       <div id="nkKwitansiFields">
         <div class="grid cols2">
           <div class="field"><label>Tanggal</label><input type="date" id="kwTanggal"></div>
-          <div class="field"><label>Sudah Terima Dari</label><input type="text" id="kwDari" placeholder="cth: Bpk. Ahmad"></div>
+          <div class="field"><label>Telah Terima Dari</label><input type="text" id="kwDari" placeholder="cth: Bpk. Ahmad"></div>
         </div>
         <div class="grid cols2">
           <div class="field"><label>Jumlah (Rp)</label><input type="number" id="kwJumlah" min="0" step="1"></div>
@@ -699,6 +710,13 @@ function fmtDateID(dstr){
   const d = new Date(dstr+'T00:00:00');
   return d.toLocaleDateString('id-ID', {day:'2-digit', month:'long', year:'numeric'});
 }
+function toTitleCase(str){
+  if(!str) return '';
+  return str.toLowerCase().replace(/\b\w/g, c=>c.toUpperCase());
+}
+function kotaLabelUntukTtd(){
+  return SETTINGS.kampung ? toTitleCase(SETTINGS.kampung.split(',')[0]) : '';
+}
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 function monthStr(){ return new Date().toISOString().slice(0,7); }
 
@@ -876,8 +894,8 @@ function updateAppIcons(){
   //    Catatan: dukungan data-URI di manifest untuk Add-to-Home-Screen bervariasi antar browser/perangkat.
   try{
     const dynamicManifest = {
-      name: SETTINGS.namaBumka ? `SILKA - ${SETTINGS.namaBumka}` : 'SILKA Online',
-      short_name: SETTINGS.namaBumka || 'SILKA',
+      name: 'SILKA Online - Sistem Laporan Keuangan BUMKA',
+      short_name: 'SILKA Online',
       start_url: './index.html',
       scope: './',
       display: 'standalone',
@@ -992,12 +1010,19 @@ function ttdBlockByRole(roleKeyword, roleLabelFallback, tglLabel){
 function bendaharaRoleLabel(){ return SETTINGS.lang==='en' ? 'Treasurer' : 'Bendahara'; }
 function sekretarisRoleLabel(){ return SETTINGS.lang==='en' ? 'Secretary' : 'Sekretaris'; }
 function ttdBendahara(tanggal){
-  const kotaLabel = (SETTINGS.kampung ? SETTINGS.kampung.split(',')[0] : '') + ', ' + fmtDateID(tanggal);
+  const kotaLabel = kotaLabelUntukTtd() + ', ' + fmtDateID(tanggal);
   return ttdBlockByRole('bendahara', bendaharaRoleLabel(), kotaLabel);
 }
 function ttdSekretaris(tanggal){
-  const kotaLabel = (SETTINGS.kampung ? SETTINGS.kampung.split(',')[0] : '') + ', ' + fmtDateID(tanggal);
+  const kotaLabel = kotaLabelUntukTtd() + ', ' + fmtDateID(tanggal);
   return ttdBlockByRole('sekretaris', sekretarisRoleLabel(), kotaLabel);
+}
+function ttdBlockKosong(roleLabel, tglLabel){
+  const align = {kiri:'left', tengah:'center', kanan:'right'}[SETTINGS.ttdPosisi] || 'right';
+  return `<div class="ttd" style="text-align:${align}">
+    <div>${tglLabel}</div>
+    <div style="margin-top:50px"><span class="line">&nbsp;</span><br>${roleLabel}</div>
+  </div>`;
 }
 
 /* ====== BAHASA (I18N ringan untuk UI) ====== */
@@ -2080,10 +2105,10 @@ function terbilang(n){
     if(num < 1000000000000) return eja(Math.floor(num/1000000000)) + ' miliar' + (num%1000000000!==0 ? ' ' + eja(num%1000000000) : '');
     return eja(Math.floor(num/1000000000000)) + ' triliun' + (num%1000000000000!==0 ? ' ' + eja(num%1000000000000) : '');
   }
-  if(n===0) return 'nol rupiah';
+  if(n===0) return 'Nol Rupiah';
   let hasil = eja(n).trim().replace(/\s+/g,' ');
-  hasil = hasil.charAt(0).toUpperCase() + hasil.slice(1);
-  return hasil + ' rupiah';
+  hasil = hasil.replace(/\b\w/g, c=>c.toUpperCase());
+  return hasil + ' Rupiah';
 }
 
 /* ====== NOTA & KWITANSI ====== */
@@ -2140,7 +2165,7 @@ function kopSuratHtml(){
     ${logoImg}
     <div class="kop-text">
       <h2>${(SETTINGS.namaBumka || '(Nama BUMKA belum diisi)').toUpperCase()}</h2>
-      <div class="kampung-line">${SETTINGS.kampung || ''}</div>
+      <div class="kampung-line">${(SETTINGS.kampung || '').toUpperCase()}</div>
       <div class="addr">${SETTINGS.alamat || ''}</div>
     </div>
   </div>`;
@@ -2154,13 +2179,18 @@ document.getElementById('btnPreviewDokumen').addEventListener('click', ()=>{
     const jumlah = Number(document.getElementById('kwJumlah').value)||0;
     const untuk = document.getElementById('kwUntuk').value.trim() || '-';
     html += `<div class="doctitle">KWITANSI</div>
-      <table><tbody>
-        <tr><td style="width:140px">Sudah terima dari</td><td>: ${dari}</td></tr>
-        <tr><td style="vertical-align:top">Jumlah Uang</td><td>: <strong>${fmtRp(jumlah)}</strong></td></tr>
-        <tr><td style="vertical-align:top">Terbilang</td><td>: <em>${terbilang(jumlah)}</em></td></tr>
-        <tr><td style="vertical-align:top">Untuk Pembayaran</td><td>: ${untuk}</td></tr>
-      </tbody></table>
-      ${ttdBlockHtml((SETTINGS.kampung ? SETTINGS.kampung.split(',')[0] : '') + ', ' + fmtDateID(tgl))}`;
+      <div class="kw-wrap">
+        <div class="kw-fields">
+          <div class="kw-row"><div class="kw-label">Telah terima dari</div><div class="kw-colon">:</div><div class="kw-value">${dari}</div></div>
+          <div class="kw-row"><div class="kw-label">Uang sebanyak</div><div class="kw-colon">:</div><div class="kw-value"><em>${terbilang(jumlah)}</em></div></div>
+          <div class="kw-row"><div class="kw-label">Untuk pembayaran</div><div class="kw-colon">:</div><div class="kw-value">${untuk}</div></div>
+        </div>
+        <div class="kw-amount-box">
+          <div class="lbl">Jumlah</div>
+          <div class="val">${fmtRp(jumlah)}</div>
+        </div>
+      </div>
+      ${ttdBlockKosong(SETTINGS.lang==='en' ? 'Treasurer' : 'Bendahara', kotaLabelUntukTtd() + ', ' + fmtDateID(tgl))}`;
   } else {
     const tgl = document.getElementById('ntTanggal').value;
     const pembeli = document.getElementById('ntPembeli').value.trim() || '-';
@@ -2178,9 +2208,10 @@ document.getElementById('btnPreviewDokumen').addEventListener('click', ()=>{
         <tbody>${rows}</tbody>
       </table>
       <p style="text-align:right;font-weight:800;margin-top:10px;border-top:2px solid #333;padding-top:6px">TOTAL: ${fmtRp(total)}</p>
-      ${ttdBlockHtml((SETTINGS.kampung ? SETTINGS.kampung.split(',')[0] : '') + ', ' + fmtDateID(tgl))}`;
+      ${ttdBlockKosong(SETTINGS.lang==='en' ? 'Recipient' : 'Penerima', kotaLabelUntukTtd() + ', ' + fmtDateID(tgl))}`;
   }
-  document.getElementById('printArea').innerHTML = `<div class="doc-preview">${html}</div>`;
+  const docClass = jenis==='kwitansi' ? 'doc-preview doc-kwitansi' : 'doc-preview';
+  document.getElementById('printArea').innerHTML = `<div class="${docClass}">${html}</div>`;
   document.getElementById('nkPreviewCard').style.display = 'block';
 });
 document.getElementById('btnCetakDokumen').addEventListener('click', ()=>{
@@ -2543,14 +2574,10 @@ function buildSpjDocumentHtml(s){
     <p style="font-size:13px;margin-bottom:20px">${s.rencana_tindak_lanjut || '-'}</p>
 
     <h3 style="color:var(--primary-dark);margin-bottom:10px">H. Pengesahan</h3>
-    <div style="display:flex;justify-content:space-between;margin-top:20px;flex-wrap:wrap;gap:20px">
-      <div style="text-align:center;min-width:180px">
-        <div>Mengetahui,<br>Kepala Kampung</div>
-        <div style="margin-top:50px"><span class="line">${kepalaKampung}</span></div>
-      </div>
-      <div style="flex:1;min-width:220px">
-        ${ttdBlockHtml((SETTINGS.kampung ? SETTINGS.kampung.split(',')[0] : '') + ', ' + fmtDateID(sampai))}
-      </div>
+    ${ttdBlockHtml(kotaLabelUntukTtd() + ', ' + fmtDateID(sampai))}
+    <div style="text-align:center;margin-top:40px">
+      <div>Mengetahui,<br>Kepala Kampung</div>
+      <div style="margin-top:50px"><span class="line">${kepalaKampung}</span></div>
     </div>
   </div>`;
 }

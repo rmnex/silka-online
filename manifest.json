@@ -1,12 +1,12 @@
 {
-  "name": "SILKA - Sistem Laporan Keuangan BUMKA",
-  "short_name": "SILKA",
+  "name": "SILKA Online - Sistem Laporan Keuangan BUMKA",
+  "short_name": "SILKA Online",
   "description": "Aplikasi pembukuan dan laporan keuangan untuk BUMKA Maju Bersama",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f4f6f5",
-  "theme_color": "#0d6e4f",
+  "theme_color": "#1a5fb4",
   "orientation": "portrait-primary",
   "icons": [
     {
