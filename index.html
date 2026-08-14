@@ -979,6 +979,26 @@ function ttdBlockHtml(tglLabel){
     <div style="display:flex;gap:18px;justify-content:${justify};margin-top:6px;flex-wrap:wrap">${cols}</div>
   </div>`;
 }
+function ttdBlockByRole(roleKeyword, roleLabelFallback, tglLabel){
+  const align = {kiri:'left', tengah:'center', kanan:'right'}[SETTINGS.ttdPosisi] || 'right';
+  const found = (SETTINGS.ttdList||[]).find(t=> (t.jabatan||'').toLowerCase().includes(roleKeyword.toLowerCase()));
+  const nama = (found && (found.nama||'').trim()) || '____________________';
+  const jabatan = (found && (found.jabatan||'').trim()) || roleLabelFallback;
+  return `<div class="ttd" style="text-align:${align}">
+    <div>${tglLabel}</div>
+    <div style="margin-top:50px"><span class="line">${nama}</span><br>${jabatan}</div>
+  </div>`;
+}
+function bendaharaRoleLabel(){ return SETTINGS.lang==='en' ? 'Treasurer' : 'Bendahara'; }
+function sekretarisRoleLabel(){ return SETTINGS.lang==='en' ? 'Secretary' : 'Sekretaris'; }
+function ttdBendahara(tanggal){
+  const kotaLabel = (SETTINGS.kampung ? SETTINGS.kampung.split(',')[0] : '') + ', ' + fmtDateID(tanggal);
+  return ttdBlockByRole('bendahara', bendaharaRoleLabel(), kotaLabel);
+}
+function ttdSekretaris(tanggal){
+  const kotaLabel = (SETTINGS.kampung ? SETTINGS.kampung.split(',')[0] : '') + ', ' + fmtDateID(tanggal);
+  return ttdBlockByRole('sekretaris', sekretarisRoleLabel(), kotaLabel);
+}
 
 /* ====== BAHASA (I18N ringan untuk UI) ====== */
 const I18N = {
@@ -2748,7 +2768,7 @@ function renderLaporanLabaRugi(dari, sampai){
     if(t.jenis==='masuk') akunPendapatan[nama] = (akunPendapatan[nama]||0) + Number(t.jumlah);
     else akunBeban[nama] = (akunBeban[nama]||0) + Number(t.jumlah);
   });
-  let html = `<h2 style="text-align:center">LAPORAN LABA RUGI</h2>
+  let html = kopSuratHtml() + `<h2 style="text-align:center">LAPORAN LABA RUGI</h2>
     <p style="text-align:center;color:var(--text-mut);font-size:12.5px;margin-bottom:16px">Periode ${fmtDateID(dari)} s.d. ${fmtDateID(sampai)}</p>
     <table><tbody>
       <tr><td colspan="2" style="font-weight:700;background:var(--primary-light)">PENDAPATAN</td></tr>`;
@@ -2766,6 +2786,7 @@ function renderLaporanLabaRugi(dari, sampai){
   html += `<tr><td style="font-weight:700">Jumlah Beban</td><td class="num" style="font-weight:700">${fmtRp(totalBeban)}</td></tr>
       <tr><td style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">LABA (RUGI) BERSIH</td><td class="num" style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">${fmtRp(laba)}</td></tr>
     </tbody></table>`;
+  html += ttdBendahara(sampai);
   document.getElementById('lapOutput').innerHTML = html;
 }
 
@@ -2781,7 +2802,7 @@ function renderLaporanNeraca(sampai){
   const totalAset = saldoKas + asetNilaiBuku;
   const totalKewajiban = 0;
   const totalEkuitas = modalAwal + modalDariAset + labaDitahan;
-  let html = `<h2 style="text-align:center">NERACA</h2>
+  let html = kopSuratHtml() + `<h2 style="text-align:center">NERACA</h2>
     <p style="text-align:center;color:var(--text-mut);font-size:12.5px;margin-bottom:16px">Per Tanggal ${fmtDateID(sampai)}</p>
     <div class="grid cols2">
     <div><table><tbody>
@@ -2811,6 +2832,7 @@ function renderLaporanNeraca(sampai){
   if(Math.round(totalAset) !== Math.round(totalKewajiban+totalEkuitas)){
     html += `<p style="color:var(--danger);font-size:12px;margin-top:10px">⚠ Neraca belum balance. Cek kembali data transaksi, Modal Awal, dan Sumber Perolehan aset.</p>`;
   }
+  html += ttdBendahara(sampai);
   document.getElementById('lapOutput').innerHTML = html;
 }
 
@@ -2821,7 +2843,7 @@ function renderLaporanArusKas(dari, sampai){
   const kasKeluarSblm = listSblm.filter(t=>t.jenis==='keluar').reduce((s,t)=>s+Number(t.jumlah),0);
   const saldoAwal = (SETTINGS.modalAwal||0) + kasMasukSblm - kasKeluarSblm;
   const saldoAkhir = saldoAwal + laba;
-  let html = `<h2 style="text-align:center">LAPORAN ARUS KAS</h2>
+  let html = kopSuratHtml() + `<h2 style="text-align:center">LAPORAN ARUS KAS</h2>
     <p style="text-align:center;color:var(--text-mut);font-size:12.5px;margin-bottom:16px">Periode ${fmtDateID(dari)} s.d. ${fmtDateID(sampai)}</p>
     <table><tbody>
       <tr><td colspan="2" style="font-weight:700;background:var(--primary-light)">ARUS KAS DARI AKTIVITAS OPERASI</td></tr>
@@ -2832,6 +2854,7 @@ function renderLaporanArusKas(dari, sampai){
       <tr><td>Saldo Kas Awal Periode</td><td class="num">${fmtRp(saldoAwal)}</td></tr>
       <tr><td style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">Saldo Kas Akhir Periode</td><td class="num" style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">${fmtRp(saldoAkhir)}</td></tr>
     </tbody></table>`;
+  html += ttdBendahara(sampai);
   document.getElementById('lapOutput').innerHTML = html;
 }
 
@@ -2849,7 +2872,7 @@ function renderLaporanPerubahanEkuitas(dari, sampai){
   const modalDariAsetPeriode = totalModalDariAset(sampai) - modalDariAsetSblm;
   const ekuitasAkhir = ekuitasAwal + labaPeriode + modalDariAsetPeriode;
 
-  let html = `<h2 style="text-align:center">LAPORAN PERUBAHAN EKUITAS</h2>
+  let html = kopSuratHtml() + `<h2 style="text-align:center">LAPORAN PERUBAHAN EKUITAS</h2>
     <p style="text-align:center;color:var(--text-mut);font-size:12.5px;margin-bottom:16px">Periode ${fmtDateID(dari)} s.d. ${fmtDateID(sampai)}</p>
     <table><tbody>
       <tr><td>Ekuitas Awal Periode</td><td class="num">${fmtRp(ekuitasAwal)}</td></tr>
@@ -2859,6 +2882,7 @@ function renderLaporanPerubahanEkuitas(dari, sampai){
   }
   html += `<tr><td style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">Ekuitas Akhir Periode</td><td class="num" style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">${fmtRp(ekuitasAkhir)}</td></tr>
     </tbody></table>`;
+  html += ttdBendahara(sampai);
   document.getElementById('lapOutput').innerHTML = html;
 }
 
@@ -2872,7 +2896,7 @@ function renderLaporanBukuBesar(dari, sampai){
   const list = STATE.transaksi.filter(t=> t.akun_id===akunId && t.tanggal >= dari && t.tanggal <= sampai)
     .slice().sort((a,b)=> (a.tanggal||'').localeCompare(b.tanggal||''));
   let saldo = 0;
-  let html = `<h2 style="text-align:center">BUKU BESAR</h2>
+  let html = kopSuratHtml() + `<h2 style="text-align:center">BUKU BESAR</h2>
     <p style="text-align:center;color:var(--text-mut);font-size:12.5px;margin-bottom:16px">${akun ? getAkunNama(akun.id) : ''} — Periode ${fmtDateID(dari)} s.d. ${fmtDateID(sampai)}</p>`;
   if(list.length===0){
     html += `<div class="empty">Belum ada mutasi pada akun ini di periode tersebut.</div>`;
@@ -2886,6 +2910,7 @@ function renderLaporanBukuBesar(dari, sampai){
     });
     html += `<tr><td colspan="5" style="font-weight:700">SALDO AKHIR</td><td class="num" style="font-weight:700">${fmtRp(saldo)}</td></tr></tbody></table>`;
   }
+  html += ttdBendahara(sampai);
   document.getElementById('lapOutput').innerHTML = html;
 }
 
@@ -2902,7 +2927,7 @@ function renderLaporanCALK(dari, sampai){
     if(t.jenis==='masuk') perUnit[nama].p += Number(t.jumlah);
     else perUnit[nama].b += Number(t.jumlah);
   });
-  let html = `<h2 style="text-align:center">CATATAN ATAS LAPORAN KEUANGAN (CALK)</h2>
+  let html = kopSuratHtml() + `<h2 style="text-align:center">CATATAN ATAS LAPORAN KEUANGAN (CALK)</h2>
     <p style="text-align:center;color:var(--text-mut);font-size:12.5px;margin-bottom:16px">Periode ${fmtDateID(dari)} s.d. ${fmtDateID(sampai)}</p>
     <h3 style="color:var(--primary-dark);margin-bottom:8px">1. Dasar Penyusunan</h3>
     <p style="font-size:13px;margin-bottom:14px">Laporan disusun berdasarkan basis kas (cash basis) untuk pendapatan dan beban operasional, dengan penyusutan aset tetap dihitung menggunakan metode garis lurus (straight-line).</p>
@@ -2923,6 +2948,7 @@ function renderLaporanCALK(dari, sampai){
     Laba (Rugi) Bersih: <strong>${fmtRp(laba)}</strong><br>
     Jumlah Unit Usaha aktif: <strong>${STATE.unitusaha.length}</strong><br>
     Jumlah Akun terdaftar: <strong>${STATE.akun.length}</strong></p>`;
+  html += ttdBendahara(sampai);
   document.getElementById('lapOutput').innerHTML = html;
 }
 
@@ -2933,7 +2959,7 @@ function renderLaporanKampung(dari, sampai){
   const insentifRp = pendapatanBersih * (SETTINGS.insentifPercent||0) / 100;
   const totalPersen = (SETTINGS.padesPercent||0) + (SETTINGS.modalPercent||0) + (SETTINGS.insentifPercent||0);
 
-  let html = `<h2 style="text-align:center">LAPORAN BULANAN KAMPUNG</h2>
+  let html = kopSuratHtml() + `<h2 style="text-align:center">LAPORAN BULANAN KAMPUNG</h2>
     <p style="text-align:center;color:var(--text-mut);font-size:12.5px;margin-bottom:16px">${SETTINGS.namaBumka||'BUMKA'} — Periode ${fmtDateID(dari)} s.d. ${fmtDateID(sampai)}</p>
     <h3 style="color:var(--primary-dark);margin-bottom:8px">A. Pendapatan per Unit Usaha</h3>
     <table style="margin-bottom:14px"><thead><tr><th>No</th><th>Unit Usaha</th><th class="num">Pendapatan</th></tr></thead><tbody>`;
@@ -2976,6 +3002,7 @@ function renderLaporanKampung(dari, sampai){
       html += `<p style="color:var(--danger);font-size:12px;margin-top:8px">⚠ Total persentase insentif pengurus (${totalPersenInsentif}%) belum 100%. Cek menu Pengurus.</p>`;
     }
   }
+  html += ttdSekretaris(sampai);
   document.getElementById('lapOutput').innerHTML = html;
 }
 
