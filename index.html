@@ -183,6 +183,7 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
 
   <div class="nav-group-title" data-i18n="grp_lainnya">LAINNYA</div>
   <button data-sec="catatan" ><svg class="ic" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> <span data-i18n="nav_catatan">Catatan</span></button>
+  <button data-sec="riwayat" ><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/><path d="M3 3v5h5"/><path d="M3.5 8a9 9 0 1 1-.9 5"/></svg> <span data-i18n="nav_riwayat">Riwayat Perubahan</span></button>
   <button data-sec="pengaturan" ><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg> <span data-i18n="nav_pengaturan">Pengaturan</span></button>
 </nav>
 <main>
@@ -594,6 +595,17 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
     </div>
   </div>
 
+  <!-- RIWAYAT PERUBAHAN -->
+  <div class="section" id="sec-riwayat">
+    <div class="card no-print">
+      <h2>Riwayat Perubahan Transaksi</h2>
+      <p class="hint">Setiap kali transaksi diedit atau dihapus, otomatis tercatat di sini — termasuk siapa yang mengubah dan apa saja yang berubah. Catatan ini tidak bisa dihapus/diubah siapa pun (langsung dari database).</p>
+    </div>
+    <div class="card">
+      <div id="riwayatTableWrap"></div>
+    </div>
+  </div>
+
   <!-- PENGATURAN -->
   <div class="section" id="sec-pengaturan">
     <div class="card">
@@ -617,12 +629,21 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
       <h2 data-i18n="h2_ttd"><svg class="ic" viewBox="0 0 24 24"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg> Pengaturan Tanda Tangan</h2>
       <div id="ttdListWrap"></div>
       <button type="button" class="btn small secondary" id="btnTambahTtd" style="margin:8px 0" data-i18n="btn_tambah_ttd">+ Tambah Penanda Tangan</button>
-      <div class="field" style="max-width:220px;margin-top:6px"><label data-i18n="lbl_ttd_posisi">Posisi Tanggal</label>
-        <select id="setTtdPosisi">
-          <option value="kiri" data-i18n="opt_kiri">Kiri</option>
-          <option value="tengah" data-i18n="opt_tengah">Tengah</option>
-          <option value="kanan" data-i18n="opt_kanan">Kanan</option>
-        </select>
+      <div class="grid cols2" style="margin-top:6px">
+        <div class="field"><label data-i18n="lbl_ttd_posisi_dokumen">Posisi Tanggal — Kwitansi/Nota/Jurnal Kas</label>
+          <select id="setTtdPosisiDokumen">
+            <option value="kiri" data-i18n="opt_kiri">Kiri</option>
+            <option value="tengah" data-i18n="opt_tengah">Tengah</option>
+            <option value="kanan" data-i18n="opt_kanan">Kanan</option>
+          </select>
+        </div>
+        <div class="field"><label data-i18n="lbl_ttd_posisi_laporan">Posisi Tanggal — Laporan/SPJ</label>
+          <select id="setTtdPosisiLaporan">
+            <option value="kiri" data-i18n="opt_kiri">Kiri</option>
+            <option value="tengah" data-i18n="opt_tengah">Tengah</option>
+            <option value="kanan" data-i18n="opt_kanan">Kanan</option>
+          </select>
+        </div>
       </div>
       <button class="btn small" id="btnSimpanTtd" style="margin-top:10px" data-i18n="btn_simpan_ttd">Simpan Tanda Tangan</button>
     </div>
@@ -697,7 +718,7 @@ const SUPABASE_URL = 'https://tozjvshvswbqrrkkdify.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_USqAxJ4gwA6mNAk4CgKW0Q_psMrx0FO';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let STATE = { unitusaha: [], akun: [], transaksi: [], aset: [], pengurus: [], setoran: [], spj: [], piutanghutang: [], catatan: [] };
+let STATE = { unitusaha: [], akun: [], transaksi: [], aset: [], pengurus: [], setoran: [], spj: [], piutanghutang: [], catatan: [], riwayat: [] };
 let currentUser = null;
 
 function toast(msg){
@@ -782,9 +803,9 @@ async function ensureDefaultAkun(){
 }
 
 /* ====== PENGATURAN (key-value sederhana) ====== */
-let SETTINGS = { modalAwal: 0, istilahPades: 'PADes', frekuensiSetoran: 'bulanan', padesPercent: 45, namaBumka: '', kampung: '', alamat: '', taxScheme: '0.5', taxRate: 0.5, modalPercent: 15, insentifPercent: 40, logoData: '', theme: 'hijau', ttdList: [], ttdPosisi: 'kanan', lang: 'id' };
+let SETTINGS = { modalAwal: 0, istilahPades: 'PADes', frekuensiSetoran: 'bulanan', padesPercent: 45, namaBumka: '', kampung: '', alamat: '', taxScheme: '0.5', taxRate: 0.5, modalPercent: 15, insentifPercent: 40, logoData: '', theme: 'hijau', ttdList: [], ttdPosisiDokumen: 'kanan', ttdPosisiLaporan: 'kanan', lang: 'id' };
 async function loadSettings(){
-  const { data } = await sb.from('pengaturan').select('*').in('key', ['modalAwal','istilahPades','frekuensiSetoran','padesPercent','namaBumka','kampung','alamat','taxScheme','taxRate','modalPercent','insentifPercent','logoData','theme','ttdList','ttdPosisi']);
+  const { data } = await sb.from('pengaturan').select('*').in('key', ['modalAwal','istilahPades','frekuensiSetoran','padesPercent','namaBumka','kampung','alamat','taxScheme','taxRate','modalPercent','insentifPercent','logoData','theme','ttdList','ttdPosisiDokumen','ttdPosisiLaporan']);
   (data||[]).forEach(row=>{
     if(row.key==='modalAwal') SETTINGS.modalAwal = Number(row.value)||0;
     if(row.key==='istilahPades') SETTINGS.istilahPades = row.value || 'PADes';
@@ -800,7 +821,8 @@ async function loadSettings(){
     if(row.key==='logoData') SETTINGS.logoData = row.value || '';
     if(row.key==='theme') SETTINGS.theme = row.value || 'hijau';
     if(row.key==='ttdList') SETTINGS.ttdList = Array.isArray(row.value) ? row.value : [];
-    if(row.key==='ttdPosisi') SETTINGS.ttdPosisi = row.value || 'kanan';
+    if(row.key==='ttdPosisiDokumen') SETTINGS.ttdPosisiDokumen = row.value || 'kanan';
+    if(row.key==='ttdPosisiLaporan') SETTINGS.ttdPosisiLaporan = row.value || 'kanan';
   });
   if(SETTINGS.ttdList.length===0) SETTINGS.ttdList = [{nama:'', jabatan:''}];
   SETTINGS.lang = localStorage.getItem('silka_lang') || 'id';
@@ -815,7 +837,8 @@ async function loadSettings(){
   document.getElementById('setTaxRate').value = SETTINGS.taxRate;
   document.getElementById('setModalPercent').value = SETTINGS.modalPercent;
   document.getElementById('setInsentifPercent').value = SETTINGS.insentifPercent;
-  document.getElementById('setTtdPosisi').value = SETTINGS.ttdPosisi;
+  document.getElementById('setTtdPosisiDokumen').value = SETTINGS.ttdPosisiDokumen;
+  document.getElementById('setTtdPosisiLaporan').value = SETTINGS.ttdPosisiLaporan;
   renderTtdListInputs();
   updateHeaderLogo();
   applyTheme(SETTINGS.theme);
@@ -888,36 +911,14 @@ function updateHeaderLogo(){
 
 /* ====== IKON DINAMIS (tab browser + shortcut layar utama) ====== */
 function updateAppIcons(){
-  if(!SETTINGS.logoData) return; // belum ada logo diupload, biarkan pakai ikon default SILKA
-  // 1) Ganti favicon tab browser
+  // Catatan: logo BUMKA (bentuk bebas, sering persegi panjang) sengaja TIDAK dipakai
+  // untuk ikon "Add to Home Screen" / instalasi, karena Chrome memotong paksa jadi
+  // persegi dan sering memotong bagian penting logo (misal tulisan nama BUMKA).
+  // Ikon instalasi tetap pakai icon-192.png/icon-512.png bawaan SILKA Online (sudah didesain persegi).
+  if(!SETTINGS.logoData) return;
+  // Favicon tab browser aman dipakai logo BUMKA (ukurannya kecil, bukan ikon instalasi)
   let iconLink = document.querySelector('link[rel="icon"]');
   if(iconLink) iconLink.href = SETTINGS.logoData;
-  let appleLink = document.querySelector('link[rel="apple-touch-icon"]');
-  if(appleLink) appleLink.href = SETTINGS.logoData;
-
-  // 2) Coba ganti manifest secara dinamis supaya "Add to Home Screen" pakai logo BUMKA
-  //    Catatan: dukungan data-URI di manifest untuk Add-to-Home-Screen bervariasi antar browser/perangkat.
-  try{
-    const dynamicManifest = {
-      name: 'SILKA Online - Sistem Laporan Keuangan BUMKA',
-      short_name: 'SILKA Online',
-      start_url: './index.html',
-      scope: './',
-      display: 'standalone',
-      background_color: '#f4f6f5',
-      theme_color: (THEMES[SETTINGS.theme]||THEMES.hijau).primary,
-      icons: [
-        { src: SETTINGS.logoData, sizes: '192x192', type: 'image/png', purpose: 'any' },
-        { src: SETTINGS.logoData, sizes: '512x512', type: 'image/png', purpose: 'any' }
-      ]
-    };
-    const blob = new Blob([JSON.stringify(dynamicManifest)], {type:'application/manifest+json'});
-    const url = URL.createObjectURL(blob);
-    let manifestLink = document.querySelector('link[rel="manifest"]');
-    if(manifestLink) manifestLink.href = url;
-  }catch(err){
-    console.warn('Gagal membuat manifest dinamis:', err);
-  }
 }
 
 /* ====== TEMA WARNA ====== */
@@ -977,18 +978,20 @@ document.getElementById('btnTambahTtd').addEventListener('click', ()=>{
   renderTtdListInputs();
 });
 document.getElementById('btnSimpanTtd').addEventListener('click', async ()=>{
-  SETTINGS.ttdPosisi = document.getElementById('setTtdPosisi').value;
+  SETTINGS.ttdPosisiDokumen = document.getElementById('setTtdPosisiDokumen').value;
+  SETTINGS.ttdPosisiLaporan = document.getElementById('setTtdPosisiLaporan').value;
   const cleanList = SETTINGS.ttdList.filter(t=> (t.nama||'').trim() || (t.jabatan||'').trim());
   SETTINGS.ttdList = cleanList.length > 0 ? cleanList : [{nama:'', jabatan:''}];
   await sb.from('pengaturan').upsert([
     {key:'ttdList', value: SETTINGS.ttdList},
-    {key:'ttdPosisi', value: SETTINGS.ttdPosisi}
+    {key:'ttdPosisiDokumen', value: SETTINGS.ttdPosisiDokumen},
+    {key:'ttdPosisiLaporan', value: SETTINGS.ttdPosisiLaporan}
   ]);
   renderTtdListInputs();
   toast('Tanda tangan disimpan');
 });
-function ttdBlockHtml(tglLabel){
-  const align = {kiri:'left', tengah:'center', kanan:'right'}[SETTINGS.ttdPosisi] || 'right';
+function ttdBlockHtml(tglLabel, posisi){
+  const align = {kiri:'left', tengah:'center', kanan:'right'}[posisi||'kanan'] || 'right';
   const signers = (SETTINGS.ttdList||[]).filter(t=> (t.nama||'').trim() || (t.jabatan||'').trim());
   const list = signers.length > 0 ? signers : [{nama:'', jabatan: SETTINGS.lang==='en' ? 'Treasurer' : 'Bendahara'}];
   const cols = list.map(t=>{
@@ -996,14 +999,14 @@ function ttdBlockHtml(tglLabel){
     const jabatan = (t.jabatan||'').trim() || (SETTINGS.lang==='en' ? 'Treasurer' : 'Bendahara');
     return `<div style="flex:1;min-width:140px;text-align:center"><span class="line">${nama}</span><br>${jabatan}</div>`;
   }).join('');
-  const justify = {kiri:'flex-start', tengah:'center', kanan:'flex-end'}[SETTINGS.ttdPosisi] || 'flex-end';
+  const justify = {kiri:'flex-start', tengah:'center', kanan:'flex-end'}[posisi||'kanan'] || 'flex-end';
   return `<div class="ttd" style="text-align:${align}">
     <div>${tglLabel}</div>
     <div style="display:flex;gap:18px;justify-content:${justify};margin-top:6px;flex-wrap:wrap">${cols}</div>
   </div>`;
 }
-function ttdBlockByRole(roleKeyword, roleLabelFallback, tglLabel){
-  const align = {kiri:'left', tengah:'center', kanan:'right'}[SETTINGS.ttdPosisi] || 'right';
+function ttdBlockByRole(roleKeyword, roleLabelFallback, tglLabel, posisi){
+  const align = {kiri:'left', tengah:'center', kanan:'right'}[posisi||'kanan'] || 'right';
   const found = (SETTINGS.ttdList||[]).find(t=> (t.jabatan||'').toLowerCase().includes(roleKeyword.toLowerCase()));
   const nama = (found && (found.nama||'').trim()) || '____________________';
   const jabatan = (found && (found.jabatan||'').trim()) || roleLabelFallback;
@@ -1016,11 +1019,11 @@ function bendaharaRoleLabel(){ return SETTINGS.lang==='en' ? 'Treasurer' : 'Bend
 function sekretarisRoleLabel(){ return SETTINGS.lang==='en' ? 'Secretary' : 'Sekretaris'; }
 function ttdBendahara(tanggal){
   const kotaLabel = kotaLabelUntukTtd() + ', ' + fmtDateID(tanggal);
-  return ttdBlockByRole('bendahara', bendaharaRoleLabel(), kotaLabel);
+  return ttdBlockByRole('bendahara', bendaharaRoleLabel(), kotaLabel, SETTINGS.ttdPosisiLaporan);
 }
 function ttdSekretaris(tanggal){
   const kotaLabel = kotaLabelUntukTtd() + ', ' + fmtDateID(tanggal);
-  return ttdBlockByRole('sekretaris', sekretarisRoleLabel(), kotaLabel);
+  return ttdBlockByRole('sekretaris', sekretarisRoleLabel(), kotaLabel, SETTINGS.ttdPosisiLaporan);
 }
 function populateLapTtdSelect(){
   const sel = document.getElementById('lapTtdPilihan');
@@ -1040,12 +1043,12 @@ function ttdUntukLaporan(jenisLaporan, tanggal){
   const pilihan = document.getElementById('lapTtdPilihan') ? document.getElementById('lapTtdPilihan').value : 'otomatis';
   const kotaLabel = kotaLabelUntukTtd() + ', ' + fmtDateID(tanggal);
   if(pilihan === 'otomatis' || pilihan === undefined){
-    if(jenisLaporan === 'laporankampung') return ttdBlockByRole('sekretaris', sekretarisRoleLabel(), kotaLabel);
-    return ttdBlockByRole('bendahara', bendaharaRoleLabel(), kotaLabel);
+    if(jenisLaporan === 'laporankampung') return ttdBlockByRole('sekretaris', sekretarisRoleLabel(), kotaLabel, SETTINGS.ttdPosisiLaporan);
+    return ttdBlockByRole('bendahara', bendaharaRoleLabel(), kotaLabel, SETTINGS.ttdPosisiLaporan);
   }
   const signer = (SETTINGS.ttdList||[])[Number(pilihan)];
-  if(!signer) return ttdBlockByRole('bendahara', bendaharaRoleLabel(), kotaLabel);
-  const align = {kiri:'left', tengah:'center', kanan:'right'}[SETTINGS.ttdPosisi] || 'right';
+  if(!signer) return ttdBlockByRole('bendahara', bendaharaRoleLabel(), kotaLabel, SETTINGS.ttdPosisiLaporan);
+  const align = {kiri:'left', tengah:'center', kanan:'right'}[SETTINGS.ttdPosisiLaporan||'kanan'] || 'right';
   const nama = (signer.nama||'').trim() || '____________________';
   const jabatan = (signer.jabatan||'').trim() || '-';
   return `<div class="ttd" style="text-align:${align}">
@@ -1053,8 +1056,8 @@ function ttdUntukLaporan(jenisLaporan, tanggal){
     <div style="margin-top:50px"><span class="line">${nama}</span><br>${jabatan}</div>
   </div>`;
 }
-function ttdBlockKosong(roleLabel, tglLabel){
-  const align = {kiri:'left', tengah:'center', kanan:'right'}[SETTINGS.ttdPosisi] || 'right';
+function ttdBlockKosong(roleLabel, tglLabel, posisi){
+  const align = {kiri:'left', tengah:'center', kanan:'right'}[posisi||'kanan'] || 'right';
   return `<div class="ttd" style="text-align:${align}">
     <div>${tglLabel}</div>
     <div style="margin-top:50px"><span class="line">&nbsp;</span><br>${roleLabel}</div>
@@ -1087,6 +1090,7 @@ const I18N = {
   nav_spj:{id:'SPJ', en:'SPJ (Accountability Report)'},
   nav_piutang:{id:'Piutang/Hutang', en:'Receivables/Payables'},
   nav_catatan:{id:'Catatan', en:'Notes'},
+  nav_riwayat:{id:'Riwayat Perubahan', en:'Change History'},
   h2_buat_dokumen:{id:'Buat Dokumen', en:'Create Document'},
   h2_jurnalkas:{id:'Jurnal Kas Manual (Form Kosong untuk Dicetak)', en:'Manual Cash Journal (Blank Printable Form)'},
   hint_jurnalkas:{id:'Kertas kosong format Buku Kas Umum untuk dicatat manual di lapangan (misal petugas Pasar/Air Bersih) sebelum diinput ke sistem.', en:'Blank General Cash Book form for manual recording in the field before entering into the system.'},
@@ -1106,7 +1110,8 @@ const I18N = {
   lbl_ttd_nama:{id:'Nama Penanda Tangan', en:'Signer Name'},
   lbl_ttd_jabatan:{id:'Jabatan', en:'Position'},
   btn_tambah_ttd:{id:'+ Tambah Penanda Tangan', en:'+ Add Signer'},
-  lbl_ttd_posisi:{id:'Posisi Tanggal', en:'Date Position'},
+  lbl_ttd_posisi_dokumen:{id:'Posisi Tanggal — Kwitansi/Nota/Jurnal Kas', en:'Date Position — Receipt/Invoice/Cash Journal'},
+  lbl_ttd_posisi_laporan:{id:'Posisi Tanggal — Laporan/SPJ', en:'Date Position — Reports/Accountability Report'},
   opt_kiri:{id:'Kiri', en:'Left'},
   opt_tengah:{id:'Tengah', en:'Center'},
   opt_kanan:{id:'Kanan', en:'Right'},
@@ -1144,7 +1149,7 @@ document.getElementById('btnSimpanPengaturanKampung').addEventListener('click', 
 
 /* ====== LOAD DATA ====== */
 async function loadAll(){
-  const [u, a, t, as, pe, se, sp, ph, ct] = await Promise.all([
+  const [u, a, t, as, pe, se, sp, ph, ct, rw] = await Promise.all([
     sb.from('unit_usaha').select('*').order('nama'),
     sb.from('akun').select('*').order('kode'),
     sb.from('transaksi').select('*').order('tanggal', {ascending:false}),
@@ -1153,7 +1158,8 @@ async function loadAll(){
     sb.from('setoran_pades').select('*').order('periode_dari', {ascending:false}),
     sb.from('spj').select('*').order('periode_dari', {ascending:false}),
     sb.from('piutang_hutang').select('*').order('tanggal', {ascending:false}),
-    sb.from('catatan').select('*').order('created_at', {ascending:false})
+    sb.from('catatan').select('*').order('created_at', {ascending:false}),
+    sb.from('riwayat_perubahan').select('*').order('diubah_pada', {ascending:false}).limit(300)
   ]);
   STATE.unitusaha = u.data || [];
   STATE.akun = a.data || [];
@@ -1164,6 +1170,7 @@ async function loadAll(){
   STATE.spj = sp.data || [];
   STATE.piutanghutang = ph.data || [];
   STATE.catatan = ct.data || [];
+  STATE.riwayat = rw.data || [];
 }
 
 /* ====== REALTIME ====== */
@@ -1213,6 +1220,10 @@ function setupRealtime(){
       refreshActiveSection();
       toast('Ada catatan baru');
     })
+    .on('postgres_changes', {event:'INSERT', schema:'public', table:'riwayat_perubahan'}, async ()=>{
+      await loadAll();
+      refreshActiveSection();
+    })
     .subscribe((status)=>{
       const dot = document.getElementById('connDot');
       const txt = document.getElementById('connTxt');
@@ -1239,6 +1250,7 @@ function refreshActiveSection(){
   if(sec==='laporan') populateLapTtdSelect();
   if(sec==='piutang') renderPiutangSection();
   if(sec==='catatan') renderCatatanSection();
+  if(sec==='riwayat') renderRiwayatSection();
 }
 
 /* ====== NAVIGASI ====== */
@@ -2227,7 +2239,7 @@ document.getElementById('btnPreviewDokumen').addEventListener('click', ()=>{
           <div class="val">${fmtRp(jumlah)}</div>
         </div>
       </div>
-      ${ttdBlockKosong(SETTINGS.lang==='en' ? 'Treasurer' : 'Bendahara', kotaLabelUntukTtd() + ', ' + fmtDateID(tgl))}`;
+      ${ttdBlockKosong(SETTINGS.lang==='en' ? 'Treasurer' : 'Bendahara', kotaLabelUntukTtd() + ', ' + fmtDateID(tgl), SETTINGS.ttdPosisiDokumen)}`;
   } else {
     const tgl = document.getElementById('ntTanggal').value;
     const pembeli = document.getElementById('ntPembeli').value.trim() || '-';
@@ -2245,7 +2257,7 @@ document.getElementById('btnPreviewDokumen').addEventListener('click', ()=>{
         <tbody>${rows}</tbody>
       </table>
       <p style="text-align:right;font-weight:800;margin-top:10px;border-top:2px solid #333;padding-top:6px">TOTAL: ${fmtRp(total)}</p>
-      ${ttdBlockKosong(SETTINGS.lang==='en' ? 'Recipient' : 'Penerima', kotaLabelUntukTtd() + ', ' + fmtDateID(tgl))}`;
+      ${ttdBlockKosong(SETTINGS.lang==='en' ? 'Recipient' : 'Penerima', kotaLabelUntukTtd() + ', ' + fmtDateID(tgl), SETTINGS.ttdPosisiDokumen)}`;
   }
   const docClass = jenis==='kwitansi' ? 'doc-preview doc-kwitansi' : 'doc-preview';
   document.getElementById('printArea').innerHTML = `<div class="${docClass}">${html}</div>`;
@@ -2400,7 +2412,7 @@ function buildJurnalKasManualHtml(jumlahBaris, unitId){
       </tr></thead>
       <tbody>${rows.replace(/<td>/g,'<td style="border:1px solid #999;padding:4px">')}</tbody>
     </table>
-    <div class="ttd" style="text-align:right">
+    <div class="ttd" style="text-align:${ {kiri:'left', tengah:'center', kanan:'right'}[SETTINGS.ttdPosisiDokumen||'kanan'] || 'right' }">
       <div>${fmtDateID(todayStr())}</div>
       <div style="margin-top:50px"><span class="line">&nbsp;</span><br>${SETTINGS.lang==='en' ? 'Officer' : 'Petugas'}</div>
     </div>
@@ -2611,7 +2623,7 @@ function buildSpjDocumentHtml(s){
     <p style="font-size:13px;margin-bottom:20px">${s.rencana_tindak_lanjut || '-'}</p>
 
     <h3 style="color:var(--primary-dark);margin-bottom:10px">H. Pengesahan</h3>
-    ${ttdBlockHtml(kotaLabelUntukTtd() + ', ' + fmtDateID(sampai))}
+    ${ttdBlockHtml(kotaLabelUntukTtd() + ', ' + fmtDateID(sampai), SETTINGS.ttdPosisiLaporan)}
     <div style="text-align:center;margin-top:40px">
       <div>Mengetahui,<br>Kepala Kampung</div>
       <div style="margin-top:50px"><span class="line">${kepalaKampung}</span></div>
@@ -2786,6 +2798,69 @@ window.deleteCatatan = async function(id){
   renderCatatanList();
   toast(SETTINGS.lang==='en' ? 'Note deleted' : 'Catatan dihapus');
 };
+
+/* ====== RIWAYAT PERUBAHAN ====== */
+const RIWAYAT_FIELD_LABELS = {
+  tanggal: 'Tanggal',
+  unit_id: 'Unit Usaha',
+  jenis: 'Jenis',
+  akun_id: 'Akun',
+  jumlah: 'Jumlah',
+  metode: 'Metode',
+  ket: 'Keterangan'
+};
+function formatRiwayatFieldValue(field, value){
+  if(value === null || value === undefined || value === '') return '-';
+  if(field === 'unit_id') return getUnitNama(value);
+  if(field === 'akun_id') return getAkunNama(value);
+  if(field === 'jenis') return value === 'masuk' ? 'Kas Masuk' : 'Kas Keluar';
+  if(field === 'jumlah') return fmtRp(value);
+  if(field === 'tanggal') return fmtDateID(value);
+  return value;
+}
+function renderRiwayatSection(){
+  renderRiwayatTable();
+}
+function renderRiwayatTable(){
+  const wrap = document.getElementById('riwayatTableWrap');
+  if(STATE.riwayat.length===0){
+    wrap.innerHTML = `<div class="empty">Belum ada riwayat perubahan. Riwayat akan otomatis tercatat begitu ada transaksi yang diedit atau dihapus.</div>`;
+    return;
+  }
+  let html = '';
+  STATE.riwayat.forEach(r=>{
+    const isDelete = r.aksi === 'DELETE';
+    const badgeColor = isDelete ? 'var(--danger)' : 'var(--accent)';
+    const badgeText = isDelete ? 'Dihapus' : 'Diedit';
+    const fieldsToShow = Object.keys(RIWAYAT_FIELD_LABELS);
+    let detailHtml;
+    if(isDelete){
+      const lama = r.data_lama || {};
+      detailHtml = fieldsToShow.map(f=>
+        `<div style="font-size:12px;margin-bottom:2px"><strong>${RIWAYAT_FIELD_LABELS[f]}:</strong> ${formatRiwayatFieldValue(f, lama[f])}</div>`
+      ).join('');
+    } else {
+      const lama = r.data_lama || {};
+      const baru = r.data_baru || {};
+      const changed = fieldsToShow.filter(f=> JSON.stringify(lama[f]) !== JSON.stringify(baru[f]));
+      if(changed.length===0){
+        detailHtml = `<div style="font-size:12px;color:var(--text-mut)">(tidak ada perubahan nilai pada field yang dipantau)</div>`;
+      } else {
+        detailHtml = changed.map(f=>
+          `<div style="font-size:12px;margin-bottom:2px"><strong>${RIWAYAT_FIELD_LABELS[f]}:</strong> ${formatRiwayatFieldValue(f, lama[f])} → <strong style="color:var(--primary-dark)">${formatRiwayatFieldValue(f, baru[f])}</strong></div>`
+        ).join('');
+      }
+    }
+    html += `<div class="catatan-item" style="background:${isDelete ? 'var(--danger-light)' : 'var(--primary-light)'}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px">
+        <span class="badge" style="background:${badgeColor};color:#fff">${badgeText}</span>
+        <span style="font-size:11px;color:var(--text-mut)">${fmtWaktuCatatan(r.diubah_pada)} — ${r.diubah_oleh_email || '-'}</span>
+      </div>
+      ${detailHtml}
+    </div>`;
+  });
+  wrap.innerHTML = html;
+}
 
 /* ====== LAPORAN ====== */
 document.getElementById('lapJenis').addEventListener('change', (e)=>{
