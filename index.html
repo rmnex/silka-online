@@ -25,9 +25,16 @@ header .sub{font-size:11px;opacity:.85;}
 .pill{background:rgba(255,255,255,.15);padding:5px 12px;border-radius:20px;font-size:12px;border:none;color:#fff;cursor:pointer;}
 .online-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#4ade80;margin-right:5px;}
 .offline-dot{background:#f87171;}
-nav{display:flex;background:#fff;border-bottom:1px solid var(--border);overflow-x:auto;padding:0 4px;}
-nav button{padding:12px 14px;font-size:12.5px;color:var(--text-mut);font-weight:600;background:none;border:none;border-bottom:3px solid transparent;white-space:nowrap;cursor:pointer;}
-nav button.active{color:var(--primary);border-bottom-color:var(--primary);}
+.hamburger-btn{background:rgba(255,255,255,.15);border:none;border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+.nav-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:998;}
+.nav-overlay.open{display:block;}
+nav{position:fixed;top:0;left:0;bottom:0;width:280px;max-width:85vw;background:#fff;z-index:999;overflow-y:auto;transform:translateX(-100%);transition:transform .25s ease;box-shadow:2px 0 12px rgba(0,0,0,.15);padding-bottom:20px;}
+nav.open{transform:translateX(0);}
+.nav-drawer-header{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 10px;font-weight:700;color:var(--primary-dark);font-size:15px;border-bottom:1px solid var(--border);margin-bottom:6px;}
+.nav-drawer-header button{background:none;border:none;font-size:18px;color:var(--text-mut);cursor:pointer;padding:4px 8px;}
+.nav-group-title{font-size:10.5px;font-weight:700;color:var(--text-mut);text-transform:uppercase;letter-spacing:.5px;padding:12px 16px 4px;}
+nav button{display:flex;align-items:center;width:100%;text-align:left;padding:11px 16px;font-size:13.5px;color:var(--text);font-weight:600;background:none;border:none;cursor:pointer;}
+nav button.active{color:var(--primary);background:var(--primary-light);}
 main{padding:16px;max-width:900px;margin:0 auto;}
 .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px;}
 .card h2{font-size:15px;color:var(--primary-dark);margin-bottom:12px;}
@@ -83,6 +90,10 @@ td{padding:7px 8px;border-bottom:1px solid var(--border);}
 }
 svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 .notif{display:flex;align-items:flex-start;gap:10px;background:#fff8e6;border:1px solid #f0d78c;border-radius:10px;padding:12px 14px;margin-bottom:10px;font-size:13px;color:#6b5615;}
+.catatan-item{background:var(--primary-light);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+.catatan-item .nama{font-weight:700;color:var(--primary-dark);font-size:13px;}
+.catatan-item .waktu{font-size:11px;color:var(--text-mut);margin-left:8px;font-weight:400;}
+.catatan-item .isi{font-size:13.5px;margin-top:5px;white-space:pre-wrap;word-break:break-word;}
 .notif.danger{background:var(--danger-light);border-color:#f0b4ac;color:#7d1a15;}
 .notif svg{flex-shrink:0;margin-top:1px;width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 </style>
@@ -112,6 +123,7 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
 <div id="appWrap">
 <header>
   <div style="display:flex;align-items:center;gap:10px">
+    <button class="hamburger-btn" id="btnHamburger" aria-label="Menu"><svg viewBox="0 0 24 24" style="width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     <img id="headerLogo" src="" style="display:none;width:40px;height:40px;border-radius:8px;object-fit:cover">
     <div>
       <h1 data-i18n="app_title">SILKA Online — Sistem Laporan Keuangan BUMKA</h1>
@@ -124,20 +136,36 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
     <button class="pill" id="btnLogout" data-i18n="btn_logout">Keluar</button>
   </div>
 </header>
-<nav>
+<div class="nav-overlay" id="navOverlay"></div>
+<nav id="navDrawer">
+  <div class="nav-drawer-header">
+    <span data-i18n="nav_menu_title">Menu</span>
+    <button id="btnCloseNav" aria-label="Tutup">✕</button>
+  </div>
+
+  <div class="nav-group-title" data-i18n="grp_utama">UTAMA</div>
   <button data-sec="dashboard" class="active" ><svg class="ic" viewBox="0 0 24 24"><line x1="4" y1="20" x2="4" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="20" y1="20" x2="20" y2="14"/></svg> <span data-i18n="nav_dashboard">Dashboard</span></button>
   <button data-sec="transaksi" ><svg class="ic" viewBox="0 0 24 24"><path d="M7 7h12l-4-4"/><path d="M17 17H5l4 4"/></svg> <span data-i18n="nav_transaksi">Transaksi</span></button>
   <button data-sec="perunit" ><svg class="ic" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="1"/><line x1="9" y1="8" x2="9" y2="8"/><line x1="15" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="15" y2="12"/><line x1="9" y1="21" x2="9" y2="17"/><line x1="15" y1="21" x2="15" y2="17"/></svg> <span data-i18n="nav_perunit">Per Unit</span></button>
+
+  <div class="nav-group-title" data-i18n="grp_master">DATA MASTER</div>
   <button data-sec="unitusaha" ><svg class="ic" viewBox="0 0 24 24"><path d="M3 9l1-5h16l1 5"/><path d="M4 9v11h16V9"/><path d="M9 20v-6h6v6"/></svg> <span data-i18n="nav_unitusaha">Unit Usaha</span></button>
   <button data-sec="akun" ><svg class="ic" viewBox="0 0 24 24"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 0 4 22.5v-18z"/><line x1="4" y1="19.5" x2="20" y2="19.5"/></svg> <span data-i18n="nav_akun">Akun</span></button>
   <button data-sec="aset" ><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="13"/><path d="M3 8l3-5h12l3 5"/><line x1="3" y1="8" x2="21" y2="8"/></svg> <span data-i18n="nav_aset">Aset</span></button>
   <button data-sec="pengurus" ><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><path d="M2 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2"/><circle cx="18" cy="8" r="2.3"/><path d="M22 21v-1.5a4 4 0 0 0-3-3.87"/></svg> <span data-i18n="nav_pengurus">Pengurus</span></button>
+
+  <div class="nav-group-title" data-i18n="grp_keuangan">KEUANGAN</div>
   <button data-sec="setoran" ><svg class="ic" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="6"/><polyline points="6 12 12 6 18 12"/><line x1="5" y1="21" x2="19" y2="21"/></svg> <span data-i18n="nav_setoran">Setoran PADes/PAK</span></button>
-  <button data-sec="notakwitansi" ><svg class="ic" viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/></svg> <span data-i18n="nav_notakwitansi">Nota &amp; Kwitansi</span></button>
-  <button data-sec="jurnalkas" ><svg class="ic" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> <span data-i18n="nav_jurnalkas">Jurnal Kas Manual</span></button>
+  <button data-sec="piutang" ><svg class="ic" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> <span data-i18n="nav_piutang">Piutang/Hutang</span></button>
   <button data-sec="laporan" ><svg class="ic" viewBox="0 0 24 24"><polyline points="3 17 9 11 13 15 21 6"/><polyline points="15 6 21 6 21 12"/></svg> <span data-i18n="nav_laporan">Laporan</span></button>
   <button data-sec="spj" ><svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/><polyline points="9 11 10.5 12.5 15 8"/></svg> <span data-i18n="nav_spj">SPJ</span></button>
-  <button data-sec="piutang" ><svg class="ic" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> <span data-i18n="nav_piutang">Piutang/Hutang</span></button>
+
+  <div class="nav-group-title" data-i18n="grp_dokumen">DOKUMEN</div>
+  <button data-sec="notakwitansi" ><svg class="ic" viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/></svg> <span data-i18n="nav_notakwitansi">Nota &amp; Kwitansi</span></button>
+  <button data-sec="jurnalkas" ><svg class="ic" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> <span data-i18n="nav_jurnalkas">Jurnal Kas Manual</span></button>
+
+  <div class="nav-group-title" data-i18n="grp_lainnya">LAINNYA</div>
+  <button data-sec="catatan" ><svg class="ic" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> <span data-i18n="nav_catatan">Catatan</span></button>
   <button data-sec="pengaturan" ><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg> <span data-i18n="nav_pengaturan">Pengaturan</span></button>
 </nav>
 <main>
@@ -413,8 +441,8 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
 
       <button class="btn" id="btnPreviewDokumen" style="margin-top:8px">Tampilkan Preview</button>
     </div>
-    <div class="card no-print" id="nkPreviewCard" style="display:none">
-      <div class="row-actions" style="margin-bottom:14px">
+    <div class="card" id="nkPreviewCard" style="display:none">
+      <div class="row-actions no-print" style="margin-bottom:14px">
         <button class="btn secondary" id="btnCetakDokumen"><svg class="ic" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Cetak / Simpan PDF</button>
       </div>
       <div id="printArea"></div>
@@ -440,8 +468,8 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
       </div>
       <button class="btn" id="btnPreviewJurnalKas" style="margin-top:10px" data-i18n="btn_tampilkan_preview">Tampilkan Preview</button>
     </div>
-    <div class="card no-print" id="jkPreviewCard" style="display:none">
-      <div class="row-actions" style="margin-bottom:14px">
+    <div class="card" id="jkPreviewCard" style="display:none">
+      <div class="row-actions no-print" style="margin-bottom:14px">
         <button class="btn secondary" id="btnCetakJurnalKas"><svg class="ic" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> <span data-i18n="btn_cetak">Cetak / Simpan PDF</span></button>
       </div>
       <div id="jkPrintArea"></div>
@@ -482,8 +510,8 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
       <h2>Riwayat SPJ</h2>
       <div id="spjTableWrap"></div>
     </div>
-    <div class="card no-print" id="spjPreviewCard" style="display:none">
-      <div class="row-actions" style="margin-bottom:14px">
+    <div class="card" id="spjPreviewCard" style="display:none">
+      <div class="row-actions no-print" style="margin-bottom:14px">
         <button class="btn secondary" id="btnCetakSpj"><svg class="ic" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Cetak / Simpan PDF</button>
       </div>
       <div id="spjPrintArea"></div>
@@ -527,6 +555,25 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
     <div class="card">
       <h2>Daftar Hutang</h2>
       <div id="hutangTableWrap"></div>
+    </div>
+  </div>
+
+  <!-- CATATAN BERSAMA -->
+  <div class="section" id="sec-catatan">
+    <div class="card no-print">
+      <h2>Tulis Catatan</h2>
+      <p class="hint">Catatan ini bisa dilihat semua pengurus yang login — cocok untuk pengingat singkat, titip pesan, atau info penting lainnya.</p>
+      <form id="catatanForm">
+        <div class="field" style="max-width:280px;margin-bottom:12px"><label>Nama Anda</label><input type="text" id="catatanNama" placeholder="cth: Budi" required></div>
+        <div class="field" style="margin-bottom:14px"><label>Catatan</label>
+          <textarea id="catatanIsi" rows="3" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:7px;font-size:14px;font-family:inherit" placeholder="Tulis catatan di sini..." required></textarea>
+        </div>
+        <button type="submit" class="btn">Kirim Catatan</button>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Semua Catatan</h2>
+      <div id="catatanListWrap"></div>
     </div>
   </div>
 
@@ -621,7 +668,7 @@ const SUPABASE_URL = 'https://tozjvshvswbqrrkkdify.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_USqAxJ4gwA6mNAk4CgKW0Q_psMrx0FO';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let STATE = { unitusaha: [], akun: [], transaksi: [], aset: [], pengurus: [], setoran: [], spj: [], piutanghutang: [] };
+let STATE = { unitusaha: [], akun: [], transaksi: [], aset: [], pengurus: [], setoran: [], spj: [], piutanghutang: [], catatan: [] };
 let currentUser = null;
 
 function toast(msg){
@@ -932,8 +979,15 @@ const I18N = {
   nav_jurnalkas:{id:'Jurnal Kas Manual', en:'Manual Cash Journal'},
   nav_laporan:{id:'Laporan', en:'Reports'},
   nav_pengaturan:{id:'Pengaturan', en:'Settings'},
+  nav_menu_title:{id:'Menu', en:'Menu'},
+  grp_utama:{id:'UTAMA', en:'MAIN'},
+  grp_master:{id:'DATA MASTER', en:'MASTER DATA'},
+  grp_keuangan:{id:'KEUANGAN', en:'FINANCE'},
+  grp_dokumen:{id:'DOKUMEN', en:'DOCUMENTS'},
+  grp_lainnya:{id:'LAINNYA', en:'OTHER'},
   nav_spj:{id:'SPJ', en:'SPJ (Accountability Report)'},
   nav_piutang:{id:'Piutang/Hutang', en:'Receivables/Payables'},
+  nav_catatan:{id:'Catatan', en:'Notes'},
   h2_buat_dokumen:{id:'Buat Dokumen', en:'Create Document'},
   h2_jurnalkas:{id:'Jurnal Kas Manual (Form Kosong untuk Dicetak)', en:'Manual Cash Journal (Blank Printable Form)'},
   hint_jurnalkas:{id:'Kertas kosong format Buku Kas Umum untuk dicatat manual di lapangan (misal petugas Pasar/Air Bersih) sebelum diinput ke sistem.', en:'Blank General Cash Book form for manual recording in the field before entering into the system.'},
@@ -990,7 +1044,7 @@ document.getElementById('btnSimpanPengaturanKampung').addEventListener('click', 
 
 /* ====== LOAD DATA ====== */
 async function loadAll(){
-  const [u, a, t, as, pe, se, sp, ph] = await Promise.all([
+  const [u, a, t, as, pe, se, sp, ph, ct] = await Promise.all([
     sb.from('unit_usaha').select('*').order('nama'),
     sb.from('akun').select('*').order('kode'),
     sb.from('transaksi').select('*').order('tanggal', {ascending:false}),
@@ -998,7 +1052,8 @@ async function loadAll(){
     sb.from('pengurus').select('*').order('nama'),
     sb.from('setoran_pades').select('*').order('periode_dari', {ascending:false}),
     sb.from('spj').select('*').order('periode_dari', {ascending:false}),
-    sb.from('piutang_hutang').select('*').order('tanggal', {ascending:false})
+    sb.from('piutang_hutang').select('*').order('tanggal', {ascending:false}),
+    sb.from('catatan').select('*').order('created_at', {ascending:false})
   ]);
   STATE.unitusaha = u.data || [];
   STATE.akun = a.data || [];
@@ -1008,6 +1063,7 @@ async function loadAll(){
   STATE.setoran = se.data || [];
   STATE.spj = sp.data || [];
   STATE.piutanghutang = ph.data || [];
+  STATE.catatan = ct.data || [];
 }
 
 /* ====== REALTIME ====== */
@@ -1052,6 +1108,11 @@ function setupRealtime(){
       refreshActiveSection();
       toast('Data Piutang/Hutang diperbarui');
     })
+    .on('postgres_changes', {event:'*', schema:'public', table:'catatan'}, async ()=>{
+      await loadAll();
+      refreshActiveSection();
+      toast('Ada catatan baru');
+    })
     .subscribe((status)=>{
       const dot = document.getElementById('connDot');
       const txt = document.getElementById('connTxt');
@@ -1076,9 +1137,22 @@ function refreshActiveSection(){
   if(sec==='pengaturan') renderPengaturanSection();
   if(sec==='spj') renderSpjSection();
   if(sec==='piutang') renderPiutangSection();
+  if(sec==='catatan') renderCatatanSection();
 }
 
 /* ====== NAVIGASI ====== */
+function closeNavDrawer(){
+  document.getElementById('navDrawer').classList.remove('open');
+  document.getElementById('navOverlay').classList.remove('open');
+}
+function openNavDrawer(){
+  document.getElementById('navDrawer').classList.add('open');
+  document.getElementById('navOverlay').classList.add('open');
+}
+document.getElementById('btnHamburger').addEventListener('click', openNavDrawer);
+document.getElementById('btnCloseNav').addEventListener('click', closeNavDrawer);
+document.getElementById('navOverlay').addEventListener('click', closeNavDrawer);
+
 document.querySelectorAll('nav button').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
@@ -1086,6 +1160,8 @@ document.querySelectorAll('nav button').forEach(btn=>{
     document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
     document.getElementById('sec-'+btn.dataset.sec).classList.add('active');
     refreshActiveSection();
+    closeNavDrawer();
+    window.scrollTo(0,0);
   });
 });
 
@@ -2546,6 +2622,58 @@ document.getElementById('piutangCancelEdit').addEventListener('click', ()=>{
   document.getElementById('piutangFormTitle').textContent = 'Tambah Piutang/Hutang';
   document.getElementById('piutangCancelEdit').style.display = 'none';
 });
+
+/* ====== CATATAN BERSAMA ====== */
+function renderCatatanSection(){
+  const savedNama = localStorage.getItem('silka_catatan_nama');
+  if(savedNama && !document.getElementById('catatanNama').value){
+    document.getElementById('catatanNama').value = savedNama;
+  }
+  renderCatatanList();
+}
+function fmtWaktuCatatan(iso){
+  const d = new Date(iso);
+  return d.toLocaleString(SETTINGS.lang==='en' ? 'en-US' : 'id-ID', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
+}
+function renderCatatanList(){
+  const wrap = document.getElementById('catatanListWrap');
+  if(STATE.catatan.length===0){
+    wrap.innerHTML = `<div class="empty">${SETTINGS.lang==='en' ? 'No notes yet. Be the first to write one!' : 'Belum ada catatan. Jadilah yang pertama menulis!'}</div>`;
+    return;
+  }
+  let html = '';
+  STATE.catatan.forEach(c=>{
+    html += `<div class="catatan-item">
+      <span class="nama">${c.nama}</span><span class="waktu">${fmtWaktuCatatan(c.created_at)}</span>
+      <div class="isi">${(c.isi||'').replace(/</g,'&lt;')}</div>
+      <div class="row-actions no-print" style="margin-top:6px">
+        <button class="btn small danger" onclick="deleteCatatan('${c.id}')">${SETTINGS.lang==='en'?'Delete':'Hapus'}</button>
+      </div>
+    </div>`;
+  });
+  wrap.innerHTML = html;
+}
+document.getElementById('catatanForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const nama = document.getElementById('catatanNama').value.trim();
+  const isi = document.getElementById('catatanIsi').value.trim();
+  if(!nama || !isi) return;
+  localStorage.setItem('silka_catatan_nama', nama);
+  const { error } = await sb.from('catatan').insert({nama, isi});
+  if(error){ toast('Gagal kirim: ' + error.message); return; }
+  document.getElementById('catatanIsi').value = '';
+  await loadAll();
+  renderCatatanList();
+  toast(SETTINGS.lang==='en' ? 'Note sent' : 'Catatan terkirim');
+});
+window.deleteCatatan = async function(id){
+  if(!confirm(SETTINGS.lang==='en' ? 'Delete this note?' : 'Hapus catatan ini?')) return;
+  const { error } = await sb.from('catatan').delete().eq('id', id);
+  if(error){ toast('Gagal hapus: ' + error.message); return; }
+  await loadAll();
+  renderCatatanList();
+  toast(SETTINGS.lang==='en' ? 'Note deleted' : 'Catatan dihapus');
+};
 
 /* ====== LAPORAN ====== */
 document.getElementById('lapJenis').addEventListener('change', (e)=>{
