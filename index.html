@@ -35,7 +35,11 @@ nav.open{transform:translateX(0);}
 .nav-group-title{font-size:10.5px;font-weight:700;color:var(--text-mut);text-transform:uppercase;letter-spacing:.5px;padding:12px 16px 4px;}
 nav button{display:flex;align-items:center;width:100%;text-align:left;padding:11px 16px;font-size:13.5px;color:var(--text);font-weight:600;background:none;border:none;cursor:pointer;}
 nav button.active{color:var(--primary);background:var(--primary-light);}
-main{padding:16px;max-width:900px;margin:0 auto;}
+main{padding:16px;padding-bottom:80px;max-width:900px;margin:0 auto;}
+.bottom-nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:#fff;border-top:1px solid var(--border);box-shadow:0 -2px 10px rgba(0,0,0,.06);z-index:500;padding-bottom:env(safe-area-inset-bottom,0);}
+.bottom-nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;padding:9px 4px 8px;font-size:10.5px;font-weight:600;color:var(--text-mut);cursor:pointer;}
+.bottom-nav button svg.ic{width:20px;height:20px;margin-right:0;}
+.bottom-nav button.active{color:var(--primary);}
 .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px;}
 .card h2{font-size:15px;color:var(--primary-dark);margin-bottom:12px;}
 .grid{display:grid;gap:12px;}
@@ -72,9 +76,12 @@ td{padding:7px 8px;border-bottom:1px solid var(--border);}
 .toast.show{opacity:1;}
 #appWrap{display:none;}
 .doc-preview{background:#fff;border:1px solid var(--border);border-radius:10px;padding:26px;max-width:520px;margin:0 auto;}
-.doc-preview .kop{text-align:center;margin-bottom:18px;border-bottom:2px solid var(--primary);padding-bottom:12px;}
-.doc-preview .kop h2{color:var(--primary-dark);font-size:18px;}
-.doc-preview .kop .addr{font-size:11.5px;color:var(--text-mut);}
+.doc-preview .kop{display:flex;align-items:center;gap:14px;margin-bottom:18px;border-bottom:2px solid var(--primary);padding-bottom:12px;}
+.doc-preview .kop img{width:56px;height:56px;object-fit:contain;flex-shrink:0;}
+.doc-preview .kop .kop-text{flex:1;text-align:center;}
+.doc-preview .kop h2{color:var(--primary-dark);font-size:16px;letter-spacing:.3px;margin-bottom:2px;}
+.doc-preview .kop .kampung-line{font-size:13px;color:var(--text);font-weight:600;}
+.doc-preview .kop .addr{font-size:11px;color:var(--text-mut);margin-top:1px;}
 .doc-preview .doctitle{text-align:center;font-weight:800;font-size:16px;letter-spacing:1px;margin:14px 0;text-decoration:underline;}
 .doc-preview table{width:100%;font-size:13px;}
 .doc-preview .ttd{margin-top:40px;text-align:right;font-size:13px;}
@@ -123,7 +130,6 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
 <div id="appWrap">
 <header>
   <div style="display:flex;align-items:center;gap:10px">
-    <button class="hamburger-btn" id="btnHamburger" aria-label="Menu"><svg viewBox="0 0 24 24" style="width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     <img id="headerLogo" src="" style="display:none;width:40px;height:40px;border-radius:8px;object-fit:cover">
     <div>
       <h1 data-i18n="app_title">SILKA Online — Sistem Laporan Keuangan BUMKA</h1>
@@ -585,6 +591,7 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
         <div class="field"><label data-i18n="lbl_nama_bumka">Nama BUMKA</label><input type="text" id="setNamaBumka" placeholder="cth: BUMKA Maju Bersama"></div>
         <div class="field"><label data-i18n="lbl_kampung">Kampung/Desa &amp; Kecamatan</label><input type="text" id="setKampung" placeholder="cth: Kampung Penawai, Kec. Bongan"></div>
       </div>
+      <div class="field" style="margin-top:12px"><label data-i18n="lbl_alamat">Alamat Lengkap (untuk kop surat)</label><input type="text" id="setAlamat" placeholder="cth: Jl. Poros Kampung Penawai RT 03, Kutai Barat, Kalimantan Timur"></div>
       <div class="field" style="margin-top:12px"><label data-i18n="lbl_logo">Logo (maks 800KB)</label><input type="file" id="setLogoFile" accept="image/*"></div>
       <div id="logoPreviewWrap" style="margin-top:8px"></div>
       <button class="btn small" id="btnSimpanIdentitas" style="margin-top:10px" data-i18n="btn_simpan_identitas">Simpan Identitas</button>
@@ -658,6 +665,12 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
   </div>
 
 </main>
+<div class="bottom-nav no-print">
+  <button data-sec="dashboard" class="active"><svg class="ic" viewBox="0 0 24 24"><line x1="4" y1="20" x2="4" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="20" y1="20" x2="20" y2="14"/></svg><span data-i18n="nav_dashboard">Dashboard</span></button>
+  <button data-sec="transaksi"><svg class="ic" viewBox="0 0 24 24"><path d="M7 7h12l-4-4"/><path d="M17 17H5l4 4"/></svg><span data-i18n="nav_transaksi">Transaksi</span></button>
+  <button data-sec="laporan"><svg class="ic" viewBox="0 0 24 24"><polyline points="3 17 9 11 13 15 21 6"/><polyline points="15 6 21 6 21 12"/></svg><span data-i18n="nav_laporan">Laporan</span></button>
+  <button id="btnBottomMore"><svg class="ic" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg><span data-i18n="nav_lainnya">Lainnya</span></button>
+</div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -684,7 +697,7 @@ function fmtRp(n){
 function fmtDateID(dstr){
   if(!dstr) return '-';
   const d = new Date(dstr+'T00:00:00');
-  return d.toLocaleDateString('id-ID', {day:'2-digit', month:'short', year:'numeric'});
+  return d.toLocaleDateString('id-ID', {day:'2-digit', month:'long', year:'numeric'});
 }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 function monthStr(){ return new Date().toISOString().slice(0,7); }
@@ -746,9 +759,9 @@ async function ensureDefaultAkun(){
 }
 
 /* ====== PENGATURAN (key-value sederhana) ====== */
-let SETTINGS = { modalAwal: 0, istilahPades: 'PADes', frekuensiSetoran: 'bulanan', padesPercent: 45, namaBumka: '', kampung: '', taxScheme: '0.5', taxRate: 0.5, modalPercent: 15, insentifPercent: 40, logoData: '', theme: 'hijau', ttdList: [], ttdPosisi: 'kanan', lang: 'id' };
+let SETTINGS = { modalAwal: 0, istilahPades: 'PADes', frekuensiSetoran: 'bulanan', padesPercent: 45, namaBumka: '', kampung: '', alamat: '', taxScheme: '0.5', taxRate: 0.5, modalPercent: 15, insentifPercent: 40, logoData: '', theme: 'hijau', ttdList: [], ttdPosisi: 'kanan', lang: 'id' };
 async function loadSettings(){
-  const { data } = await sb.from('pengaturan').select('*').in('key', ['modalAwal','istilahPades','frekuensiSetoran','padesPercent','namaBumka','kampung','taxScheme','taxRate','modalPercent','insentifPercent','logoData','theme','ttdList','ttdPosisi']);
+  const { data } = await sb.from('pengaturan').select('*').in('key', ['modalAwal','istilahPades','frekuensiSetoran','padesPercent','namaBumka','kampung','alamat','taxScheme','taxRate','modalPercent','insentifPercent','logoData','theme','ttdList','ttdPosisi']);
   (data||[]).forEach(row=>{
     if(row.key==='modalAwal') SETTINGS.modalAwal = Number(row.value)||0;
     if(row.key==='istilahPades') SETTINGS.istilahPades = row.value || 'PADes';
@@ -756,6 +769,7 @@ async function loadSettings(){
     if(row.key==='padesPercent') SETTINGS.padesPercent = row.value !== undefined && row.value !== null ? Number(row.value) : 45;
     if(row.key==='namaBumka') SETTINGS.namaBumka = row.value || '';
     if(row.key==='kampung') SETTINGS.kampung = row.value || '';
+    if(row.key==='alamat') SETTINGS.alamat = row.value || '';
     if(row.key==='taxScheme') SETTINGS.taxScheme = row.value || '0.5';
     if(row.key==='taxRate') SETTINGS.taxRate = row.value !== undefined && row.value !== null ? Number(row.value) : 0.5;
     if(row.key==='modalPercent') SETTINGS.modalPercent = row.value !== undefined && row.value !== null ? Number(row.value) : 15;
@@ -773,6 +787,7 @@ async function loadSettings(){
   document.getElementById('setPadesPercent').value = SETTINGS.padesPercent;
   document.getElementById('setNamaBumka').value = SETTINGS.namaBumka;
   document.getElementById('setKampung').value = SETTINGS.kampung;
+  document.getElementById('setAlamat').value = SETTINGS.alamat;
   document.getElementById('setTaxScheme').value = SETTINGS.taxScheme;
   document.getElementById('setTaxRate').value = SETTINGS.taxRate;
   document.getElementById('setModalPercent').value = SETTINGS.modalPercent;
@@ -809,9 +824,11 @@ document.getElementById('btnSimpanPengaturanSetoran').addEventListener('click', 
 document.getElementById('btnSimpanIdentitas').addEventListener('click', async ()=>{
   SETTINGS.namaBumka = document.getElementById('setNamaBumka').value.trim();
   SETTINGS.kampung = document.getElementById('setKampung').value.trim();
+  SETTINGS.alamat = document.getElementById('setAlamat').value.trim();
   await sb.from('pengaturan').upsert([
     {key:'namaBumka', value: SETTINGS.namaBumka},
-    {key:'kampung', value: SETTINGS.kampung}
+    {key:'kampung', value: SETTINGS.kampung},
+    {key:'alamat', value: SETTINGS.alamat}
   ]);
   updateHeaderLogo();
   toast('Identitas BUMKA disimpan');
@@ -980,6 +997,7 @@ const I18N = {
   nav_laporan:{id:'Laporan', en:'Reports'},
   nav_pengaturan:{id:'Pengaturan', en:'Settings'},
   nav_menu_title:{id:'Menu', en:'Menu'},
+  nav_lainnya:{id:'Lainnya', en:'More'},
   grp_utama:{id:'UTAMA', en:'MAIN'},
   grp_master:{id:'DATA MASTER', en:'MASTER DATA'},
   grp_keuangan:{id:'KEUANGAN', en:'FINANCE'},
@@ -999,6 +1017,7 @@ const I18N = {
   h2_identitas:{id:'Identitas BUMKA (Kop Surat)', en:'BUMKA Identity (Letterhead)'},
   lbl_nama_bumka:{id:'Nama BUMKA', en:'BUMKA Name'},
   lbl_kampung:{id:'Kampung/Desa & Kecamatan', en:'Village & Sub-district'},
+  lbl_alamat:{id:'Alamat Lengkap (untuk kop surat)', en:'Full Address (for letterhead)'},
   lbl_logo:{id:'Logo (maks 800KB)', en:'Logo (max 800KB)'},
   btn_simpan_identitas:{id:'Simpan Identitas', en:'Save Identity'},
   h2_tema:{id:'Tema Warna', en:'Color Theme'},
@@ -1149,21 +1168,22 @@ function openNavDrawer(){
   document.getElementById('navDrawer').classList.add('open');
   document.getElementById('navOverlay').classList.add('open');
 }
-document.getElementById('btnHamburger').addEventListener('click', openNavDrawer);
 document.getElementById('btnCloseNav').addEventListener('click', closeNavDrawer);
 document.getElementById('navOverlay').addEventListener('click', closeNavDrawer);
 
-document.querySelectorAll('nav button').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-    document.getElementById('sec-'+btn.dataset.sec).classList.add('active');
-    refreshActiveSection();
-    closeNavDrawer();
-    window.scrollTo(0,0);
-  });
+function goToSection(sec){
+  document.querySelectorAll('nav button, .bottom-nav button').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll(`[data-sec="${sec}"]`).forEach(b=>b.classList.add('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+sec).classList.add('active');
+  refreshActiveSection();
+  closeNavDrawer();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('nav button, .bottom-nav button[data-sec]').forEach(btn=>{
+  btn.addEventListener('click', ()=> goToSection(btn.dataset.sec));
 });
+document.getElementById('btnBottomMore').addEventListener('click', openNavDrawer);
 
 /* ====== HELPER ====== */
 function getUnitNama(id){
@@ -2095,9 +2115,14 @@ document.getElementById('btnTambahItem').addEventListener('click', ()=>{
 });
 
 function kopSuratHtml(){
+  const logoImg = SETTINGS.logoData ? `<img src="${SETTINGS.logoData}" alt="Logo">` : '';
   return `<div class="kop">
-    <h2>${SETTINGS.namaBumka || '(Nama BUMKA belum diisi)'}</h2>
-    <div class="addr">${SETTINGS.kampung || ''}</div>
+    ${logoImg}
+    <div class="kop-text">
+      <h2>${(SETTINGS.namaBumka || '(Nama BUMKA belum diisi)').toUpperCase()}</h2>
+      <div class="kampung-line">${SETTINGS.kampung || ''}</div>
+      <div class="addr">${SETTINGS.alamat || ''}</div>
+    </div>
   </div>`;
 }
 document.getElementById('btnPreviewDokumen').addEventListener('click', ()=>{
@@ -2287,7 +2312,10 @@ function buildJurnalKasManualHtml(jumlahBaris, unitId){
       </tr></thead>
       <tbody>${rows.replace(/<td>/g,'<td style="border:1px solid #999;padding:4px">')}</tbody>
     </table>
-    ${ttdBlockHtml(fmtDateID(todayStr()))}
+    <div class="ttd" style="text-align:right">
+      <div>${fmtDateID(todayStr())}</div>
+      <div style="margin-top:50px"><span class="line">&nbsp;</span><br>${SETTINGS.lang==='en' ? 'Officer' : 'Petugas'}</div>
+    </div>
   </div>`;
 }
 document.getElementById('btnPreviewJurnalKas').addEventListener('click', ()=>{
