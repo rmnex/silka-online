@@ -646,6 +646,11 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
         </div>
         <div class="field"><label>Modal Awal BUMKA (Rp)</label><input type="number" id="lapModalAwal" min="0" step="1" value="0"></div>
       </div>
+      <div class="field no-print" style="max-width:320px;margin-bottom:12px"><label>Tanda Tangan</label>
+        <select id="lapTtdPilihan">
+          <option value="otomatis">Otomatis (sesuai jenis laporan)</option>
+        </select>
+      </div>
       <div class="field no-print" id="lapAkunFilterWrap" style="display:none;margin-bottom:12px"><label>Pilih Akun (untuk Buku Besar)</label><select id="lapAkunFilter"></select></div>
       <div class="grid cols2" style="margin-bottom:12px">
         <div class="field"><label>Periode Dari</label><input type="date" id="lapDari"></div>
@@ -902,8 +907,8 @@ function updateAppIcons(){
       background_color: '#f4f6f5',
       theme_color: (THEMES[SETTINGS.theme]||THEMES.hijau).primary,
       icons: [
-        { src: SETTINGS.logoData, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-        { src: SETTINGS.logoData, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+        { src: SETTINGS.logoData, sizes: '192x192', type: 'image/png', purpose: 'any' },
+        { src: SETTINGS.logoData, sizes: '512x512', type: 'image/png', purpose: 'any' }
       ]
     };
     const blob = new Blob([JSON.stringify(dynamicManifest)], {type:'application/manifest+json'});
@@ -1016,6 +1021,37 @@ function ttdBendahara(tanggal){
 function ttdSekretaris(tanggal){
   const kotaLabel = kotaLabelUntukTtd() + ', ' + fmtDateID(tanggal);
   return ttdBlockByRole('sekretaris', sekretarisRoleLabel(), kotaLabel);
+}
+function populateLapTtdSelect(){
+  const sel = document.getElementById('lapTtdPilihan');
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="otomatis">Otomatis (sesuai jenis laporan)</option>';
+  (SETTINGS.ttdList||[]).forEach((t,i)=>{
+    if(!(t.nama||'').trim() && !(t.jabatan||'').trim()) return;
+    const opt = document.createElement('option');
+    opt.value = String(i);
+    opt.textContent = `${t.nama||'(tanpa nama)'} — ${t.jabatan||'(tanpa jabatan)'}`;
+    sel.appendChild(opt);
+  });
+  if(cur) sel.value = cur;
+}
+function ttdUntukLaporan(jenisLaporan, tanggal){
+  const pilihan = document.getElementById('lapTtdPilihan') ? document.getElementById('lapTtdPilihan').value : 'otomatis';
+  const kotaLabel = kotaLabelUntukTtd() + ', ' + fmtDateID(tanggal);
+  if(pilihan === 'otomatis' || pilihan === undefined){
+    if(jenisLaporan === 'laporankampung') return ttdBlockByRole('sekretaris', sekretarisRoleLabel(), kotaLabel);
+    return ttdBlockByRole('bendahara', bendaharaRoleLabel(), kotaLabel);
+  }
+  const signer = (SETTINGS.ttdList||[])[Number(pilihan)];
+  if(!signer) return ttdBlockByRole('bendahara', bendaharaRoleLabel(), kotaLabel);
+  const align = {kiri:'left', tengah:'center', kanan:'right'}[SETTINGS.ttdPosisi] || 'right';
+  const nama = (signer.nama||'').trim() || '____________________';
+  const jabatan = (signer.jabatan||'').trim() || '-';
+  return `<div class="ttd" style="text-align:${align}">
+    <div>${kotaLabel}</div>
+    <div style="margin-top:50px"><span class="line">${nama}</span><br>${jabatan}</div>
+  </div>`;
 }
 function ttdBlockKosong(roleLabel, tglLabel){
   const align = {kiri:'left', tengah:'center', kanan:'right'}[SETTINGS.ttdPosisi] || 'right';
@@ -1200,6 +1236,7 @@ function refreshActiveSection(){
   if(sec==='jurnalkas') renderJurnalKasSection();
   if(sec==='pengaturan') renderPengaturanSection();
   if(sec==='spj') renderSpjSection();
+  if(sec==='laporan') populateLapTtdSelect();
   if(sec==='piutang') renderPiutangSection();
   if(sec==='catatan') renderCatatanSection();
 }
@@ -2813,7 +2850,7 @@ function renderLaporanLabaRugi(dari, sampai){
   html += `<tr><td style="font-weight:700">Jumlah Beban</td><td class="num" style="font-weight:700">${fmtRp(totalBeban)}</td></tr>
       <tr><td style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">LABA (RUGI) BERSIH</td><td class="num" style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">${fmtRp(laba)}</td></tr>
     </tbody></table>`;
-  html += ttdBendahara(sampai);
+  html += ttdUntukLaporan('labarugi', sampai);
   document.getElementById('lapOutput').innerHTML = html;
 }
 
@@ -2859,7 +2896,7 @@ function renderLaporanNeraca(sampai){
   if(Math.round(totalAset) !== Math.round(totalKewajiban+totalEkuitas)){
     html += `<p style="color:var(--danger);font-size:12px;margin-top:10px">⚠ Neraca belum balance. Cek kembali data transaksi, Modal Awal, dan Sumber Perolehan aset.</p>`;
   }
-  html += ttdBendahara(sampai);
+  html += ttdUntukLaporan('neraca', sampai);
   document.getElementById('lapOutput').innerHTML = html;
 }
 
@@ -2881,7 +2918,7 @@ function renderLaporanArusKas(dari, sampai){
       <tr><td>Saldo Kas Awal Periode</td><td class="num">${fmtRp(saldoAwal)}</td></tr>
       <tr><td style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">Saldo Kas Akhir Periode</td><td class="num" style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">${fmtRp(saldoAkhir)}</td></tr>
     </tbody></table>`;
-  html += ttdBendahara(sampai);
+  html += ttdUntukLaporan('aruskas', sampai);
   document.getElementById('lapOutput').innerHTML = html;
 }
 
@@ -2909,7 +2946,7 @@ function renderLaporanPerubahanEkuitas(dari, sampai){
   }
   html += `<tr><td style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">Ekuitas Akhir Periode</td><td class="num" style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">${fmtRp(ekuitasAkhir)}</td></tr>
     </tbody></table>`;
-  html += ttdBendahara(sampai);
+  html += ttdUntukLaporan('perubahanekuitas', sampai);
   document.getElementById('lapOutput').innerHTML = html;
 }
 
@@ -2937,7 +2974,7 @@ function renderLaporanBukuBesar(dari, sampai){
     });
     html += `<tr><td colspan="5" style="font-weight:700">SALDO AKHIR</td><td class="num" style="font-weight:700">${fmtRp(saldo)}</td></tr></tbody></table>`;
   }
-  html += ttdBendahara(sampai);
+  html += ttdUntukLaporan('bukubesar', sampai);
   document.getElementById('lapOutput').innerHTML = html;
 }
 
@@ -2975,7 +3012,7 @@ function renderLaporanCALK(dari, sampai){
     Laba (Rugi) Bersih: <strong>${fmtRp(laba)}</strong><br>
     Jumlah Unit Usaha aktif: <strong>${STATE.unitusaha.length}</strong><br>
     Jumlah Akun terdaftar: <strong>${STATE.akun.length}</strong></p>`;
-  html += ttdBendahara(sampai);
+  html += ttdUntukLaporan('calk', sampai);
   document.getElementById('lapOutput').innerHTML = html;
 }
 
@@ -3029,7 +3066,7 @@ function renderLaporanKampung(dari, sampai){
       html += `<p style="color:var(--danger);font-size:12px;margin-top:8px">⚠ Total persentase insentif pengurus (${totalPersenInsentif}%) belum 100%. Cek menu Pengurus.</p>`;
     }
   }
-  html += ttdSekretaris(sampai);
+  html += ttdUntukLaporan('laporankampung', sampai);
   document.getElementById('lapOutput').innerHTML = html;
 }
 
