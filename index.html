@@ -174,6 +174,7 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
   <div class="nav-group-title" data-i18n="grp_keuangan">KEUANGAN</div>
   <button data-sec="setoran" ><svg class="ic" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="6"/><polyline points="6 12 12 6 18 12"/><line x1="5" y1="21" x2="19" y2="21"/></svg> <span data-i18n="nav_setoran">Setoran PADes/PAK</span></button>
   <button data-sec="piutang" ><svg class="ic" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> <span data-i18n="nav_piutang">Piutang/Hutang</span></button>
+  <button data-sec="penggunaan" ><svg class="ic" viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg> <span data-i18n="nav_penggunaan">Penggunaan Alokasi</span></button>
   <button data-sec="laporan" ><svg class="ic" viewBox="0 0 24 24"><polyline points="3 17 9 11 13 15 21 6"/><polyline points="15 6 21 6 21 12"/></svg> <span data-i18n="nav_laporan">Laporan</span></button>
   <button data-sec="spj" ><svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/><polyline points="9 11 10.5 12.5 15 8"/></svg> <span data-i18n="nav_spj">SPJ</span></button>
 
@@ -191,14 +192,21 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
   <!-- DASHBOARD -->
   <div class="section active" id="sec-dashboard">
     <div id="dashNotifWrap"></div>
+    <div class="card no-print">
+      <div class="grid cols2">
+        <div class="field"><label>Periode Dari</label><input type="date" id="dashDari"></div>
+        <div class="field"><label>Periode Sampai</label><input type="date" id="dashSampai"></div>
+      </div>
+      <button class="btn small" id="btnDashTampilkan" style="margin-top:8px">Tampilkan</button>
+    </div>
     <div class="kpi-grid">
       <div class="kpi"><div class="lbl">Saldo Kas</div><div class="val" id="kpiSaldo">Rp 0</div></div>
-      <div class="kpi"><div class="lbl">Pendapatan Bulan Ini</div><div class="val" id="kpiPendapatan">Rp 0</div></div>
-      <div class="kpi"><div class="lbl">Beban Bulan Ini</div><div class="val" id="kpiBeban">Rp 0</div></div>
-      <div class="kpi"><div class="lbl">Laba/Rugi Bulan Ini</div><div class="val" id="kpiLaba">Rp 0</div></div>
+      <div class="kpi"><div class="lbl" id="kpiPendapatanLbl">Pendapatan Periode Ini</div><div class="val" id="kpiPendapatan">Rp 0</div></div>
+      <div class="kpi"><div class="lbl" id="kpiBebanLbl">Beban Periode Ini</div><div class="val" id="kpiBeban">Rp 0</div></div>
+      <div class="kpi"><div class="lbl" id="kpiLabaLbl">Laba/Rugi Periode Ini</div><div class="val" id="kpiLaba">Rp 0</div></div>
     </div>
     <div class="card">
-      <h2><svg class="ic" viewBox="0 0 24 24"><line x1="4" y1="20" x2="4" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="20" y1="20" x2="20" y2="14"/></svg> Ringkasan per Unit Usaha (Bulan Berjalan)</h2>
+      <h2><svg class="ic" viewBox="0 0 24 24"><line x1="4" y1="20" x2="4" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="20" y1="20" x2="20" y2="14"/></svg> <span id="dashUnitTableTitle">Ringkasan per Unit Usaha</span></h2>
       <div id="dashUnitTable"></div>
     </div>
     <div class="card">
@@ -223,7 +231,7 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
         <input type="hidden" id="txId">
         <div class="grid cols2">
           <div class="field"><label>Tanggal</label><input type="date" id="txTanggal" required></div>
-          <div class="field"><label>Unit Usaha</label><select id="txUnit" required></select></div>
+          <div class="field"><label>Unit Usaha</label><select id="txUnit"><option value="">— Umum / Operasional Kantor —</option></select></div>
         </div>
         <div class="grid cols2">
           <div class="field"><label>Jenis</label>
@@ -606,6 +614,45 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
     </div>
   </div>
 
+  <!-- PENGGUNAAN ALOKASI -->
+  <div class="section" id="sec-penggunaan">
+    <div class="card no-print">
+      <h2>Catat Penggunaan Alokasi</h2>
+      <p class="hint">Catat berapa yang benar-benar dipakai dari jatah Penguatan Modal, Operasional, atau ATK yang sudah dihitung di Laporan Kampung.</p>
+      <form id="penggunaanForm">
+        <input type="hidden" id="penggunaanId">
+        <div class="field" style="margin-bottom:12px"><label>Kategori</label>
+          <select id="penggunaanKategori">
+            <option value="penguatan_modal">Penguatan Modal</option>
+            <option value="operasional">Operasional</option>
+            <option value="atk">ATK</option>
+          </select>
+        </div>
+        <div class="grid cols2">
+          <div class="field"><label>Periode Dari</label><input type="date" id="penggunaanDari" required></div>
+          <div class="field"><label>Periode Sampai</label><input type="date" id="penggunaanSampai" required></div>
+        </div>
+        <div class="row-actions" style="margin-bottom:12px">
+          <button type="button" class="btn small secondary" id="btnHitungAlokasi">Hitung Jumlah Teralokasi</button>
+          <span id="penggunaanTeralokasiTxt" style="font-weight:700;color:var(--primary-dark)"></span>
+        </div>
+        <div class="grid cols2">
+          <div class="field"><label>Tanggal Penggunaan</label><input type="date" id="penggunaanTanggal"></div>
+          <div class="field"><label>Jumlah Digunakan (Rp)</label><input type="number" id="penggunaanJumlah" min="0" step="1"></div>
+        </div>
+        <div class="field" style="margin-bottom:14px"><label>Keterangan</label><input type="text" id="penggunaanKeterangan" placeholder="cth: Beli kertas &amp; tinta printer"></div>
+        <div class="row-actions">
+          <button type="submit" class="btn">Simpan</button>
+          <button type="button" class="btn secondary" id="penggunaanCancelEdit" style="display:none">Batal Edit</button>
+        </div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Riwayat Penggunaan</h2>
+      <div id="penggunaanTableWrap"></div>
+    </div>
+  </div>
+
   <!-- PENGATURAN -->
   <div class="section" id="sec-pengaturan">
     <div class="card">
@@ -662,6 +709,7 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
             <option value="aruskas">Arus Kas</option>
             <option value="bukubesar">Buku Besar</option>
             <option value="calk">CALK (Catatan atas Laporan Keuangan)</option>
+            <option value="semuakeuangan">Semua Laporan Keuangan (Gabungan)</option>
             <option value="laporankampung">Laporan Kampung</option>
           </select>
         </div>
@@ -695,8 +743,16 @@ svg.ic{width:15px;height:15px;vertical-align:-3px;margin-right:4px;fill:none;str
         <div class="field"><label>Penguatan Modal (%)</label><input type="number" id="setModalPercent" min="0" max="100" step="0.01" value="15"></div>
         <div class="field"><label>Insentif Pengurus (%)</label><input type="number" id="setInsentifPercent" min="0" max="100" step="0.01" value="40"></div>
       </div>
-      <p class="hint" style="margin-top:10px">Persentase PADes/PAK diatur di menu Setoran PADes/PAK. Total ketiganya (PADes + Penguatan Modal + Insentif Pengurus) idealnya 100%.</p>
-      <button class="btn small" id="btnSimpanPengaturanKampung" style="margin-top:6px">Simpan Pengaturan</button>
+      <div class="grid cols2" style="margin-top:12px">
+        <div class="field"><label>Operasional (%)</label><input type="number" id="setOperasionalPercent" min="0" max="100" step="0.01" value="0"></div>
+        <div class="field"><label>ATK (%)</label><input type="number" id="setAtkPercent" min="0" max="100" step="0.01" value="0"></div>
+      </div>
+      <p class="hint" style="margin-top:10px">Operasional &amp; ATK dipotong DULUAN dari Pendapatan Bersih Setelah Pajak. Sisanya baru dibagi ke PADes/PAK, Penguatan Modal, dan Insentif Pengurus sesuai persentase masing-masing (persentase PADes/PAK diatur di menu Setoran PADes/PAK).</p>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="setSembunyikanPengesahan" style="width:16px;height:16px">
+        Sembunyikan Pengesahan (tanda tangan) di Laporan Kampung
+      </label>
+      <button class="btn small" id="btnSimpanPengaturanKampung" style="margin-top:12px">Simpan Pengaturan</button>
     </div>
     <div class="card" id="lapOutput"></div>
   </div>
@@ -718,7 +774,7 @@ const SUPABASE_URL = 'https://tozjvshvswbqrrkkdify.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_USqAxJ4gwA6mNAk4CgKW0Q_psMrx0FO';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let STATE = { unitusaha: [], akun: [], transaksi: [], aset: [], pengurus: [], setoran: [], spj: [], piutanghutang: [], catatan: [], riwayat: [] };
+let STATE = { unitusaha: [], akun: [], transaksi: [], aset: [], pengurus: [], setoran: [], spj: [], piutanghutang: [], catatan: [], riwayat: [], penggunaan: [] };
 let currentUser = null;
 
 function toast(msg){
@@ -803,9 +859,9 @@ async function ensureDefaultAkun(){
 }
 
 /* ====== PENGATURAN (key-value sederhana) ====== */
-let SETTINGS = { modalAwal: 0, istilahPades: 'PADes', frekuensiSetoran: 'bulanan', padesPercent: 45, namaBumka: '', kampung: '', alamat: '', taxScheme: '0.5', taxRate: 0.5, modalPercent: 15, insentifPercent: 40, logoData: '', theme: 'hijau', ttdList: [], ttdPosisiDokumen: 'kanan', ttdPosisiLaporan: 'kanan', lang: 'id' };
+let SETTINGS = { modalAwal: 0, istilahPades: 'PADes', frekuensiSetoran: 'bulanan', padesPercent: 45, namaBumka: '', kampung: '', alamat: '', taxScheme: '0.5', taxRate: 0.5, modalPercent: 15, insentifPercent: 40, operasionalPercent: 0, atkPercent: 0, sembunyikanPengesahan: false, logoData: '', theme: 'hijau', ttdList: [], ttdPosisiDokumen: 'kanan', ttdPosisiLaporan: 'kanan', lang: 'id' };
 async function loadSettings(){
-  const { data } = await sb.from('pengaturan').select('*').in('key', ['modalAwal','istilahPades','frekuensiSetoran','padesPercent','namaBumka','kampung','alamat','taxScheme','taxRate','modalPercent','insentifPercent','logoData','theme','ttdList','ttdPosisiDokumen','ttdPosisiLaporan']);
+  const { data } = await sb.from('pengaturan').select('*').in('key', ['modalAwal','istilahPades','frekuensiSetoran','padesPercent','namaBumka','kampung','alamat','taxScheme','taxRate','modalPercent','insentifPercent','operasionalPercent','atkPercent','sembunyikanPengesahan','logoData','theme','ttdList','ttdPosisiDokumen','ttdPosisiLaporan']);
   (data||[]).forEach(row=>{
     if(row.key==='modalAwal') SETTINGS.modalAwal = Number(row.value)||0;
     if(row.key==='istilahPades') SETTINGS.istilahPades = row.value || 'PADes';
@@ -818,6 +874,9 @@ async function loadSettings(){
     if(row.key==='taxRate') SETTINGS.taxRate = row.value !== undefined && row.value !== null ? Number(row.value) : 0.5;
     if(row.key==='modalPercent') SETTINGS.modalPercent = row.value !== undefined && row.value !== null ? Number(row.value) : 15;
     if(row.key==='insentifPercent') SETTINGS.insentifPercent = row.value !== undefined && row.value !== null ? Number(row.value) : 40;
+    if(row.key==='operasionalPercent') SETTINGS.operasionalPercent = row.value !== undefined && row.value !== null ? Number(row.value) : 0;
+    if(row.key==='atkPercent') SETTINGS.atkPercent = row.value !== undefined && row.value !== null ? Number(row.value) : 0;
+    if(row.key==='sembunyikanPengesahan') SETTINGS.sembunyikanPengesahan = row.value === true || row.value === 'true';
     if(row.key==='logoData') SETTINGS.logoData = row.value || '';
     if(row.key==='theme') SETTINGS.theme = row.value || 'hijau';
     if(row.key==='ttdList') SETTINGS.ttdList = Array.isArray(row.value) ? row.value : [];
@@ -837,6 +896,9 @@ async function loadSettings(){
   document.getElementById('setTaxRate').value = SETTINGS.taxRate;
   document.getElementById('setModalPercent').value = SETTINGS.modalPercent;
   document.getElementById('setInsentifPercent').value = SETTINGS.insentifPercent;
+  document.getElementById('setOperasionalPercent').value = SETTINGS.operasionalPercent;
+  document.getElementById('setAtkPercent').value = SETTINGS.atkPercent;
+  document.getElementById('setSembunyikanPengesahan').checked = SETTINGS.sembunyikanPengesahan;
   document.getElementById('setTtdPosisiDokumen').value = SETTINGS.ttdPosisiDokumen;
   document.getElementById('setTtdPosisiLaporan').value = SETTINGS.ttdPosisiLaporan;
   renderTtdListInputs();
@@ -1089,6 +1151,7 @@ const I18N = {
   grp_lainnya:{id:'LAINNYA', en:'OTHER'},
   nav_spj:{id:'SPJ', en:'SPJ (Accountability Report)'},
   nav_piutang:{id:'Piutang/Hutang', en:'Receivables/Payables'},
+  nav_penggunaan:{id:'Penggunaan Alokasi', en:'Allocation Usage'},
   nav_catatan:{id:'Catatan', en:'Notes'},
   nav_riwayat:{id:'Riwayat Perubahan', en:'Change History'},
   h2_buat_dokumen:{id:'Buat Dokumen', en:'Create Document'},
@@ -1138,18 +1201,24 @@ document.getElementById('btnSimpanPengaturanKampung').addEventListener('click', 
   SETTINGS.taxRate = Number(document.getElementById('setTaxRate').value)||0;
   SETTINGS.modalPercent = Number(document.getElementById('setModalPercent').value)||0;
   SETTINGS.insentifPercent = Number(document.getElementById('setInsentifPercent').value)||0;
+  SETTINGS.operasionalPercent = Number(document.getElementById('setOperasionalPercent').value)||0;
+  SETTINGS.atkPercent = Number(document.getElementById('setAtkPercent').value)||0;
+  SETTINGS.sembunyikanPengesahan = document.getElementById('setSembunyikanPengesahan').checked;
   await sb.from('pengaturan').upsert([
     {key:'taxScheme', value: SETTINGS.taxScheme},
     {key:'taxRate', value: SETTINGS.taxRate},
     {key:'modalPercent', value: SETTINGS.modalPercent},
-    {key:'insentifPercent', value: SETTINGS.insentifPercent}
+    {key:'insentifPercent', value: SETTINGS.insentifPercent},
+    {key:'operasionalPercent', value: SETTINGS.operasionalPercent},
+    {key:'atkPercent', value: SETTINGS.atkPercent},
+    {key:'sembunyikanPengesahan', value: SETTINGS.sembunyikanPengesahan}
   ]);
   toast('Pengaturan pajak & bagi hasil disimpan');
 });
 
 /* ====== LOAD DATA ====== */
 async function loadAll(){
-  const [u, a, t, as, pe, se, sp, ph, ct, rw] = await Promise.all([
+  const [u, a, t, as, pe, se, sp, ph, ct, rw, pg] = await Promise.all([
     sb.from('unit_usaha').select('*').order('nama'),
     sb.from('akun').select('*').order('kode'),
     sb.from('transaksi').select('*').order('tanggal', {ascending:false}),
@@ -1159,7 +1228,8 @@ async function loadAll(){
     sb.from('spj').select('*').order('periode_dari', {ascending:false}),
     sb.from('piutang_hutang').select('*').order('tanggal', {ascending:false}),
     sb.from('catatan').select('*').order('created_at', {ascending:false}),
-    sb.from('riwayat_perubahan').select('*').order('diubah_pada', {ascending:false}).limit(300)
+    sb.from('riwayat_perubahan').select('*').order('diubah_pada', {ascending:false}).limit(300),
+    sb.from('penggunaan_alokasi').select('*').order('periode_dari', {ascending:false})
   ]);
   STATE.unitusaha = u.data || [];
   STATE.akun = a.data || [];
@@ -1171,6 +1241,7 @@ async function loadAll(){
   STATE.piutanghutang = ph.data || [];
   STATE.catatan = ct.data || [];
   STATE.riwayat = rw.data || [];
+  STATE.penggunaan = pg.data || [];
 }
 
 /* ====== REALTIME ====== */
@@ -1224,6 +1295,11 @@ function setupRealtime(){
       await loadAll();
       refreshActiveSection();
     })
+    .on('postgres_changes', {event:'*', schema:'public', table:'penggunaan_alokasi'}, async ()=>{
+      await loadAll();
+      refreshActiveSection();
+      toast('Data Penggunaan Alokasi diperbarui');
+    })
     .subscribe((status)=>{
       const dot = document.getElementById('connDot');
       const txt = document.getElementById('connTxt');
@@ -1251,6 +1327,7 @@ function refreshActiveSection(){
   if(sec==='piutang') renderPiutangSection();
   if(sec==='catatan') renderCatatanSection();
   if(sec==='riwayat') renderRiwayatSection();
+  if(sec==='penggunaan') renderPenggunaanSection();
 }
 
 /* ====== NAVIGASI ====== */
@@ -1281,6 +1358,7 @@ document.getElementById('btnBottomMore').addEventListener('click', openNavDrawer
 
 /* ====== HELPER ====== */
 function getUnitNama(id){
+  if(!id) return SETTINGS.lang==='en' ? 'General / Office Overhead' : 'Umum / Operasional Kantor';
   const u = STATE.unitusaha.find(x=>x.id===id);
   return u ? u.nama : '(tidak diketahui)';
 }
@@ -1355,7 +1433,7 @@ function renderDashUnitChart(txBulanIni){
   if(totalUmum > 0) data.push({ nama: SETTINGS.lang==='en' ? 'General / Unassigned' : 'Umum / Tidak Terikat Unit', p: totalUmum });
 
   if(data.length===0){
-    wrap.innerHTML = `<div class="empty">${SETTINGS.lang==='en' ? 'No revenue this month yet.' : 'Belum ada pendapatan bulan ini.'}</div>`;
+    wrap.innerHTML = `<div class="empty">${SETTINGS.lang==='en' ? 'No revenue in this period yet.' : 'Belum ada pendapatan pada periode ini.'}</div>`;
     return;
   }
   const totalSemua = data.reduce((s,d)=>s+d.p, 0);
@@ -1433,6 +1511,7 @@ function currentPeriodRange(freq){
   }
   return {dari, sampai};
 }
+document.getElementById('btnDashTampilkan').addEventListener('click', renderDashboard);
 function renderDashNotif(){
   const wrap = document.getElementById('dashNotifWrap');
   const notifs = [];
@@ -1479,12 +1558,23 @@ function renderDashNotif(){
 
 function renderDashboard(){
   renderDashNotif();
-  const bulanIni = monthStr();
-  const txBulanIni = STATE.transaksi.filter(t=>t.tanggal && t.tanggal.startsWith(bulanIni));
-  const pendapatan = txBulanIni.filter(t=>t.jenis==='masuk').reduce((s,t)=>s+Number(t.jumlah),0);
-  const beban = txBulanIni.filter(t=>t.jenis==='keluar').reduce((s,t)=>s+Number(t.jumlah),0);
+  if(!document.getElementById('dashDari').value){
+    document.getElementById('dashDari').value = monthStr()+'-01';
+    document.getElementById('dashSampai').value = todayStr();
+  }
+  const dari = document.getElementById('dashDari').value;
+  const sampai = document.getElementById('dashSampai').value;
+  const txPeriode = STATE.transaksi.filter(t=>t.tanggal && t.tanggal >= dari && t.tanggal <= sampai);
+  const pendapatan = txPeriode.filter(t=>t.jenis==='masuk').reduce((s,t)=>s+Number(t.jumlah),0);
+  const beban = txPeriode.filter(t=>t.jenis==='keluar').reduce((s,t)=>s+Number(t.jumlah),0);
   const semuaMasuk = STATE.transaksi.filter(t=>t.jenis==='masuk').reduce((s,t)=>s+Number(t.jumlah),0);
   const semuaKeluar = STATE.transaksi.filter(t=>t.jenis==='keluar').reduce((s,t)=>s+Number(t.jumlah),0);
+
+  const en = SETTINGS.lang==='en';
+  document.getElementById('kpiPendapatanLbl').textContent = en ? 'Revenue This Period' : 'Pendapatan Periode Ini';
+  document.getElementById('kpiBebanLbl').textContent = en ? 'Expense This Period' : 'Beban Periode Ini';
+  document.getElementById('kpiLabaLbl').textContent = en ? 'Profit/Loss This Period' : 'Laba/Rugi Periode Ini';
+  document.getElementById('dashUnitTableTitle').textContent = en ? 'Summary by Business Unit' : 'Ringkasan per Unit Usaha';
 
   document.getElementById('kpiSaldo').textContent = fmtRp(semuaMasuk - semuaKeluar);
   document.getElementById('kpiPendapatan').textContent = fmtRp(pendapatan);
@@ -1492,22 +1582,29 @@ function renderDashboard(){
   document.getElementById('kpiLaba').textContent = fmtRp(pendapatan-beban);
 
   let html;
-  if(STATE.unitusaha.length===0){
+  const txUmum = txPeriode.filter(t=>!t.unit_id);
+  if(STATE.unitusaha.length===0 && txUmum.length===0){
     html = '<div class="empty">Belum ada unit usaha. Tambahkan di menu Unit Usaha.</div>';
   } else {
     html = '<table><thead><tr><th>Unit Usaha</th><th class="num">Pendapatan</th><th class="num">Beban</th><th class="num">Laba/Rugi</th></tr></thead><tbody>';
     STATE.unitusaha.forEach(u=>{
-      const txU = txBulanIni.filter(t=>t.unit_id===u.id);
+      const txU = txPeriode.filter(t=>t.unit_id===u.id);
       const p = txU.filter(t=>t.jenis==='masuk').reduce((s,t)=>s+Number(t.jumlah),0);
       const b = txU.filter(t=>t.jenis==='keluar').reduce((s,t)=>s+Number(t.jumlah),0);
       const l = p-b;
       html += `<tr><td>${u.nama}</td><td class="num">${fmtRp(p)}</td><td class="num">${fmtRp(b)}</td><td class="num"><span class="badge ${l<0?'neg':'pos'}">${fmtRp(l)}</span></td></tr>`;
     });
+    if(txUmum.length>0){
+      const p = txUmum.filter(t=>t.jenis==='masuk').reduce((s,t)=>s+Number(t.jumlah),0);
+      const b = txUmum.filter(t=>t.jenis==='keluar').reduce((s,t)=>s+Number(t.jumlah),0);
+      const l = p-b;
+      html += `<tr><td>${getUnitNama(null)}</td><td class="num">${fmtRp(p)}</td><td class="num">${fmtRp(b)}</td><td class="num"><span class="badge ${l<0?'neg':'pos'}">${fmtRp(l)}</span></td></tr>`;
+    }
     html += '</tbody></table>';
   }
   document.getElementById('dashUnitTable').innerHTML = html;
 
-  renderDashUnitChart(txBulanIni);
+  renderDashUnitChart(txPeriode);
   renderDashTrendChart();
 
   const recent = STATE.transaksi.slice(0,8);
@@ -1582,7 +1679,7 @@ document.getElementById('txForm').addEventListener('submit', async (e)=>{
   const id = document.getElementById('txId').value;
   const obj = {
     tanggal: document.getElementById('txTanggal').value,
-    unit_id: document.getElementById('txUnit').value,
+    unit_id: document.getElementById('txUnit').value || null,
     jenis: document.getElementById('txJenis').value,
     akun_id: document.getElementById('txAkun').value,
     jumlah: Number(document.getElementById('txJumlah').value),
@@ -1612,7 +1709,7 @@ window.editTx = function(id){
   if(!t) return;
   document.getElementById('txId').value = t.id;
   document.getElementById('txTanggal').value = t.tanggal;
-  document.getElementById('txUnit').value = t.unit_id;
+  document.getElementById('txUnit').value = t.unit_id || '';
   document.getElementById('txJenis').value = t.jenis;
   document.getElementById('txAkun').value = t.akun_id || '';
   document.getElementById('txJumlah').value = t.jumlah;
@@ -2862,6 +2959,131 @@ function renderRiwayatTable(){
   wrap.innerHTML = html;
 }
 
+/* ====== PENGGUNAAN ALOKASI ====== */
+const PENGGUNAAN_KATEGORI_LABEL = {
+  penguatan_modal: 'Penguatan Modal',
+  operasional: 'Operasional',
+  atk: 'ATK'
+};
+function hitungAlokasi(kategori, dari, sampai){
+  const { pendapatanBersih } = hitungPendapatanBersihSetelahPajak(dari, sampai);
+  const operasionalRp = pendapatanBersih * (SETTINGS.operasionalPercent||0) / 100;
+  const atkRp = pendapatanBersih * (SETTINGS.atkPercent||0) / 100;
+  const sisa = pendapatanBersih - operasionalRp - atkRp;
+  if(kategori==='operasional') return operasionalRp;
+  if(kategori==='atk') return atkRp;
+  if(kategori==='penguatan_modal') return sisa * (SETTINGS.modalPercent||0) / 100;
+  return 0;
+}
+let penggunaanTeralokasiValue = 0;
+function renderPenggunaanSection(){
+  if(!document.getElementById('penggunaanDari').value){
+    document.getElementById('penggunaanDari').value = monthStr()+'-01';
+    document.getElementById('penggunaanSampai').value = todayStr();
+  }
+  renderPenggunaanTable();
+}
+function renderPenggunaanTable(){
+  const wrap = document.getElementById('penggunaanTableWrap');
+  if(STATE.penggunaan.length===0){
+    wrap.innerHTML = `<div class="empty">Belum ada riwayat penggunaan.</div>`;
+    return;
+  }
+  let html = '<table><thead><tr><th>Kategori</th><th>Periode</th><th class="num">Teralokasi</th><th class="num">Digunakan</th><th>Status</th><th></th></tr></thead><tbody>';
+  STATE.penggunaan.forEach(x=>{
+    const teralokasi = Number(x.jumlah_teralokasi)||0;
+    const digunakan = Number(x.jumlah_digunakan)||0;
+    let statusTxt, statusColor;
+    if(!x.tanggal_penggunaan || digunakan===0){ statusTxt = 'Belum Digunakan'; statusColor = 'var(--text-mut)'; }
+    else if(digunakan > teralokasi){ statusTxt = 'Melebihi Jatah'; statusColor = 'var(--danger)'; }
+    else if(digunakan === teralokasi){ statusTxt = 'Sesuai'; statusColor = 'var(--primary)'; }
+    else { statusTxt = 'Sebagian'; statusColor = 'var(--accent)'; }
+    html += `<tr>
+      <td>${PENGGUNAAN_KATEGORI_LABEL[x.kategori]||x.kategori}</td>
+      <td>${fmtDateID(x.periode_dari)} — ${fmtDateID(x.periode_sampai)}</td>
+      <td class="num">${fmtRp(teralokasi)}</td>
+      <td class="num">${fmtRp(digunakan)}</td>
+      <td><span class="badge" style="background:${statusColor};color:#fff">${statusTxt}</span></td>
+      <td class="row-actions">
+        <button class="btn small secondary" onclick="editPenggunaan('${x.id}')">Edit</button>
+        <button class="btn small danger" onclick="deletePenggunaan('${x.id}')">Hapus</button>
+      </td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+document.getElementById('btnHitungAlokasi').addEventListener('click', ()=>{
+  const kategori = document.getElementById('penggunaanKategori').value;
+  const dari = document.getElementById('penggunaanDari').value;
+  const sampai = document.getElementById('penggunaanSampai').value;
+  if(!dari || !sampai){ toast('Isi Periode Dari dan Sampai dahulu'); return; }
+  penggunaanTeralokasiValue = hitungAlokasi(kategori, dari, sampai);
+  document.getElementById('penggunaanTeralokasiTxt').textContent = `${PENGGUNAAN_KATEGORI_LABEL[kategori]} teralokasi: ${fmtRp(penggunaanTeralokasiValue)}`;
+  if(!document.getElementById('penggunaanJumlah').value){
+    document.getElementById('penggunaanJumlah').value = Math.round(penggunaanTeralokasiValue);
+  }
+});
+document.getElementById('penggunaanForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const id = document.getElementById('penggunaanId').value;
+  const obj = {
+    kategori: document.getElementById('penggunaanKategori').value,
+    periode_dari: document.getElementById('penggunaanDari').value,
+    periode_sampai: document.getElementById('penggunaanSampai').value,
+    jumlah_teralokasi: penggunaanTeralokasiValue || Number(document.getElementById('penggunaanJumlah').value)||0,
+    tanggal_penggunaan: document.getElementById('penggunaanTanggal').value || null,
+    jumlah_digunakan: Number(document.getElementById('penggunaanJumlah').value)||0,
+    keterangan: document.getElementById('penggunaanKeterangan').value.trim(),
+    updated_at: new Date().toISOString()
+  };
+  let error;
+  if(id){
+    ({ error } = await sb.from('penggunaan_alokasi').update(obj).eq('id', id));
+  } else {
+    ({ error } = await sb.from('penggunaan_alokasi').insert(obj));
+  }
+  if(error){ toast('Gagal simpan: ' + error.message); return; }
+  document.getElementById('penggunaanForm').reset();
+  document.getElementById('penggunaanId').value = '';
+  document.getElementById('penggunaanTeralokasiTxt').textContent = '';
+  penggunaanTeralokasiValue = 0;
+  document.getElementById('penggunaanCancelEdit').style.display = 'none';
+  await loadAll();
+  renderPenggunaanTable();
+  toast('Data disimpan');
+});
+window.editPenggunaan = function(id){
+  const x = STATE.penggunaan.find(v=>v.id===id);
+  if(!x) return;
+  document.getElementById('penggunaanId').value = x.id;
+  document.getElementById('penggunaanKategori').value = x.kategori;
+  document.getElementById('penggunaanDari').value = x.periode_dari;
+  document.getElementById('penggunaanSampai').value = x.periode_sampai;
+  penggunaanTeralokasiValue = Number(x.jumlah_teralokasi)||0;
+  document.getElementById('penggunaanTeralokasiTxt').textContent = `${PENGGUNAAN_KATEGORI_LABEL[x.kategori]} teralokasi: ${fmtRp(penggunaanTeralokasiValue)}`;
+  document.getElementById('penggunaanTanggal').value = x.tanggal_penggunaan || '';
+  document.getElementById('penggunaanJumlah').value = x.jumlah_digunakan || 0;
+  document.getElementById('penggunaanKeterangan').value = x.keterangan || '';
+  document.getElementById('penggunaanCancelEdit').style.display = 'inline-block';
+  window.scrollTo(0,0);
+};
+window.deletePenggunaan = async function(id){
+  if(!confirm('Hapus data ini?')) return;
+  const { error } = await sb.from('penggunaan_alokasi').delete().eq('id', id);
+  if(error){ toast('Gagal hapus: ' + error.message); return; }
+  await loadAll();
+  renderPenggunaanTable();
+  toast('Data dihapus');
+};
+document.getElementById('penggunaanCancelEdit').addEventListener('click', ()=>{
+  document.getElementById('penggunaanForm').reset();
+  document.getElementById('penggunaanId').value = '';
+  document.getElementById('penggunaanTeralokasiTxt').textContent = '';
+  penggunaanTeralokasiValue = 0;
+  document.getElementById('penggunaanCancelEdit').style.display = 'none';
+});
+
 /* ====== LAPORAN ====== */
 document.getElementById('lapJenis').addEventListener('change', (e)=>{
   document.getElementById('lapOutput').innerHTML = '';
@@ -2878,6 +3100,7 @@ document.getElementById('btnTampilLaporan').addEventListener('click', ()=>{
   else if(jenis==='aruskas') renderLaporanArusKas(dari, sampai);
   else if(jenis==='bukubesar') renderLaporanBukuBesar(dari, sampai);
   else if(jenis==='calk') renderLaporanCALK(dari, sampai);
+  else if(jenis==='semuakeuangan') renderLaporanSemuaKeuangan(dari, sampai);
   else if(jenis==='laporankampung') renderLaporanKampung(dari, sampai);
 });
 
@@ -2895,19 +3118,18 @@ function hitungPendapatanBersihSetelahPajak(dari, sampai){
   return { totalPendapatan: pendapatan, pajak, pendapatanBersih, list };
 }
 
-function renderLaporanLabaRugi(dari, sampai){
+function bodyLabaRugi(dari, sampai){
   const { pendapatan, beban, list } = hitungLabaRugiPeriode(dari, sampai);
   const bebanPenyusutan = totalBebanPenyusutanPeriode(dari, sampai);
   const totalBeban = beban + bebanPenyusutan;
   const laba = pendapatan - totalBeban;
-  // rincian per akun
   const akunPendapatan = {}, akunBeban = {};
   list.forEach(t=>{
     const nama = getAkunNama(t.akun_id);
     if(t.jenis==='masuk') akunPendapatan[nama] = (akunPendapatan[nama]||0) + Number(t.jumlah);
     else akunBeban[nama] = (akunBeban[nama]||0) + Number(t.jumlah);
   });
-  let html = kopSuratHtml() + `<h2 style="text-align:center">LAPORAN LABA RUGI</h2>
+  let html = `<h2 style="text-align:center">LAPORAN LABA RUGI</h2>
     <p style="text-align:center;color:var(--text-mut);font-size:12.5px;margin-bottom:16px">Periode ${fmtDateID(dari)} s.d. ${fmtDateID(sampai)}</p>
     <table><tbody>
       <tr><td colspan="2" style="font-weight:700;background:var(--primary-light)">PENDAPATAN</td></tr>`;
@@ -2925,11 +3147,15 @@ function renderLaporanLabaRugi(dari, sampai){
   html += `<tr><td style="font-weight:700">Jumlah Beban</td><td class="num" style="font-weight:700">${fmtRp(totalBeban)}</td></tr>
       <tr><td style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">LABA (RUGI) BERSIH</td><td class="num" style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">${fmtRp(laba)}</td></tr>
     </tbody></table>`;
+  return html;
+}
+function renderLaporanLabaRugi(dari, sampai){
+  let html = kopSuratHtml() + bodyLabaRugi(dari, sampai);
   html += ttdUntukLaporan('labarugi', sampai);
   document.getElementById('lapOutput').innerHTML = html;
 }
 
-function renderLaporanNeraca(sampai){
+function bodyNeraca(sampai){
   const listSD = STATE.transaksi.filter(t=> t.tanggal <= sampai);
   const kasMasuk = listSD.filter(t=>t.jenis==='masuk').reduce((s,t)=>s+Number(t.jumlah),0);
   const kasKeluar = listSD.filter(t=>t.jenis==='keluar').reduce((s,t)=>s+Number(t.jumlah),0);
@@ -2937,11 +3163,11 @@ function renderLaporanNeraca(sampai){
   const saldoKas = modalAwal + kasMasuk - kasKeluar;
   const { totalPerolehan: asetPerolehan, totalAkumulasi: asetAkumulasi, nilaiBuku: asetNilaiBuku } = totalAsetTetap(sampai);
   const modalDariAset = totalModalDariAset(sampai);
-  const labaDitahan = (kasMasuk - kasKeluar) - asetAkumulasi; // laba akumulasi dikurangi beban penyusutan non-kas
+  const labaDitahan = (kasMasuk - kasKeluar) - asetAkumulasi;
   const totalAset = saldoKas + asetNilaiBuku;
   const totalKewajiban = 0;
   const totalEkuitas = modalAwal + modalDariAset + labaDitahan;
-  let html = kopSuratHtml() + `<h2 style="text-align:center">NERACA</h2>
+  let html = `<h2 style="text-align:center">NERACA</h2>
     <p style="text-align:center;color:var(--text-mut);font-size:12.5px;margin-bottom:16px">Per Tanggal ${fmtDateID(sampai)}</p>
     <div class="grid cols2">
     <div><table><tbody>
@@ -2971,18 +3197,22 @@ function renderLaporanNeraca(sampai){
   if(Math.round(totalAset) !== Math.round(totalKewajiban+totalEkuitas)){
     html += `<p style="color:var(--danger);font-size:12px;margin-top:10px">⚠ Neraca belum balance. Cek kembali data transaksi, Modal Awal, dan Sumber Perolehan aset.</p>`;
   }
+  return html;
+}
+function renderLaporanNeraca(sampai){
+  let html = kopSuratHtml() + bodyNeraca(sampai);
   html += ttdUntukLaporan('neraca', sampai);
   document.getElementById('lapOutput').innerHTML = html;
 }
 
-function renderLaporanArusKas(dari, sampai){
+function bodyArusKas(dari, sampai){
   const { pendapatan, beban, laba } = hitungLabaRugiPeriode(dari, sampai);
   const listSblm = STATE.transaksi.filter(t=> t.tanggal < dari);
   const kasMasukSblm = listSblm.filter(t=>t.jenis==='masuk').reduce((s,t)=>s+Number(t.jumlah),0);
   const kasKeluarSblm = listSblm.filter(t=>t.jenis==='keluar').reduce((s,t)=>s+Number(t.jumlah),0);
   const saldoAwal = (SETTINGS.modalAwal||0) + kasMasukSblm - kasKeluarSblm;
   const saldoAkhir = saldoAwal + laba;
-  let html = kopSuratHtml() + `<h2 style="text-align:center">LAPORAN ARUS KAS</h2>
+  return `<h2 style="text-align:center">LAPORAN ARUS KAS</h2>
     <p style="text-align:center;color:var(--text-mut);font-size:12.5px;margin-bottom:16px">Periode ${fmtDateID(dari)} s.d. ${fmtDateID(sampai)}</p>
     <table><tbody>
       <tr><td colspan="2" style="font-weight:700;background:var(--primary-light)">ARUS KAS DARI AKTIVITAS OPERASI</td></tr>
@@ -2993,11 +3223,14 @@ function renderLaporanArusKas(dari, sampai){
       <tr><td>Saldo Kas Awal Periode</td><td class="num">${fmtRp(saldoAwal)}</td></tr>
       <tr><td style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">Saldo Kas Akhir Periode</td><td class="num" style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">${fmtRp(saldoAkhir)}</td></tr>
     </tbody></table>`;
+}
+function renderLaporanArusKas(dari, sampai){
+  let html = kopSuratHtml() + bodyArusKas(dari, sampai);
   html += ttdUntukLaporan('aruskas', sampai);
   document.getElementById('lapOutput').innerHTML = html;
 }
 
-function renderLaporanPerubahanEkuitas(dari, sampai){
+function bodyPerubahanEkuitas(dari, sampai){
   const listSblm = STATE.transaksi.filter(t=> t.tanggal < dari);
   const kasMasukSblm = listSblm.filter(t=>t.jenis==='masuk').reduce((s,t)=>s+Number(t.jumlah),0);
   const kasKeluarSblm = listSblm.filter(t=>t.jenis==='keluar').reduce((s,t)=>s+Number(t.jumlah),0);
@@ -3011,7 +3244,7 @@ function renderLaporanPerubahanEkuitas(dari, sampai){
   const modalDariAsetPeriode = totalModalDariAset(sampai) - modalDariAsetSblm;
   const ekuitasAkhir = ekuitasAwal + labaPeriode + modalDariAsetPeriode;
 
-  let html = kopSuratHtml() + `<h2 style="text-align:center">LAPORAN PERUBAHAN EKUITAS</h2>
+  let html = `<h2 style="text-align:center">LAPORAN PERUBAHAN EKUITAS</h2>
     <p style="text-align:center;color:var(--text-mut);font-size:12.5px;margin-bottom:16px">Periode ${fmtDateID(dari)} s.d. ${fmtDateID(sampai)}</p>
     <table><tbody>
       <tr><td>Ekuitas Awal Periode</td><td class="num">${fmtRp(ekuitasAwal)}</td></tr>
@@ -3021,6 +3254,10 @@ function renderLaporanPerubahanEkuitas(dari, sampai){
   }
   html += `<tr><td style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">Ekuitas Akhir Periode</td><td class="num" style="font-weight:800;border-top:2px solid var(--text);padding-top:10px">${fmtRp(ekuitasAkhir)}</td></tr>
     </tbody></table>`;
+  return html;
+}
+function renderLaporanPerubahanEkuitas(dari, sampai){
+  let html = kopSuratHtml() + bodyPerubahanEkuitas(dari, sampai);
   html += ttdUntukLaporan('perubahanekuitas', sampai);
   document.getElementById('lapOutput').innerHTML = html;
 }
@@ -3053,7 +3290,7 @@ function renderLaporanBukuBesar(dari, sampai){
   document.getElementById('lapOutput').innerHTML = html;
 }
 
-function renderLaporanCALK(dari, sampai){
+function bodyCALK(dari, sampai){
   const { pendapatan, beban, list } = hitungLabaRugiPeriode(dari, sampai);
   const bebanPenyusutan = totalBebanPenyusutanPeriode(dari, sampai);
   const totalBeban = beban + bebanPenyusutan;
@@ -3066,7 +3303,7 @@ function renderLaporanCALK(dari, sampai){
     if(t.jenis==='masuk') perUnit[nama].p += Number(t.jumlah);
     else perUnit[nama].b += Number(t.jumlah);
   });
-  let html = kopSuratHtml() + `<h2 style="text-align:center">CATATAN ATAS LAPORAN KEUANGAN (CALK)</h2>
+  let html = `<h2 style="text-align:center">CATATAN ATAS LAPORAN KEUANGAN (CALK)</h2>
     <p style="text-align:center;color:var(--text-mut);font-size:12.5px;margin-bottom:16px">Periode ${fmtDateID(dari)} s.d. ${fmtDateID(sampai)}</p>
     <h3 style="color:var(--primary-dark);margin-bottom:8px">1. Dasar Penyusunan</h3>
     <p style="font-size:13px;margin-bottom:14px">Laporan disusun berdasarkan basis kas (cash basis) untuk pendapatan dan beban operasional, dengan penyusutan aset tetap dihitung menggunakan metode garis lurus (straight-line).</p>
@@ -3087,46 +3324,84 @@ function renderLaporanCALK(dari, sampai){
     Laba (Rugi) Bersih: <strong>${fmtRp(laba)}</strong><br>
     Jumlah Unit Usaha aktif: <strong>${STATE.unitusaha.length}</strong><br>
     Jumlah Akun terdaftar: <strong>${STATE.akun.length}</strong></p>`;
+  return html;
+}
+function renderLaporanCALK(dari, sampai){
+  let html = kopSuratHtml() + bodyCALK(dari, sampai);
   html += ttdUntukLaporan('calk', sampai);
+  document.getElementById('lapOutput').innerHTML = html;
+}
+
+function renderLaporanSemuaKeuangan(dari, sampai){
+  let html = kopSuratHtml();
+  html += bodyLabaRugi(dari, sampai);
+  html += '<div style="page-break-before:always;margin-top:24px"></div>' + bodyNeraca(sampai);
+  html += '<div style="page-break-before:always;margin-top:24px"></div>' + bodyPerubahanEkuitas(dari, sampai);
+  html += '<div style="page-break-before:always;margin-top:24px"></div>' + bodyArusKas(dari, sampai);
+  html += '<div style="page-break-before:always;margin-top:24px"></div>' + bodyCALK(dari, sampai);
+  html += ttdUntukLaporan('labarugi', sampai);
   document.getElementById('lapOutput').innerHTML = html;
 }
 
 function renderLaporanKampung(dari, sampai){
   const { totalPendapatan, pajak, pendapatanBersih, list } = hitungPendapatanBersihSetelahPajak(dari, sampai);
-  const padesRp = pendapatanBersih * (SETTINGS.padesPercent||0) / 100;
-  const modalRp = pendapatanBersih * (SETTINGS.modalPercent||0) / 100;
-  const insentifRp = pendapatanBersih * (SETTINGS.insentifPercent||0) / 100;
-  const totalPersen = (SETTINGS.padesPercent||0) + (SETTINGS.modalPercent||0) + (SETTINGS.insentifPercent||0);
 
-  let html = kopSuratHtml() + `<h2 style="text-align:center">LAPORAN BULANAN KAMPUNG</h2>
+  // Operasional & ATK dipotong DULUAN dari Pendapatan Bersih Setelah Pajak
+  const operasionalRp = pendapatanBersih * (SETTINGS.operasionalPercent||0) / 100;
+  const atkRp = pendapatanBersih * (SETTINGS.atkPercent||0) / 100;
+  const sisaSetelahOperasionalAtk = pendapatanBersih - operasionalRp - atkRp;
+
+  // Sisanya baru dibagi ke PADes/PAK, Penguatan Modal, Insentif Pengurus
+  const padesRp = sisaSetelahOperasionalAtk * (SETTINGS.padesPercent||0) / 100;
+  const modalRp = sisaSetelahOperasionalAtk * (SETTINGS.modalPercent||0) / 100;
+  const insentifRp = sisaSetelahOperasionalAtk * (SETTINGS.insentifPercent||0) / 100;
+  const totalPersenSisa = (SETTINGS.padesPercent||0) + (SETTINGS.modalPercent||0) + (SETTINGS.insentifPercent||0);
+  const totalSemuaRp = operasionalRp + atkRp + padesRp + modalRp + insentifRp;
+
+  let html = kopSuratHtml();
+  html += bodyLabaRugi(dari, sampai);
+  html += '<div style="page-break-before:always;margin-top:24px"></div>' + bodyNeraca(sampai);
+  html += '<div style="page-break-before:always;margin-top:24px"></div>' + bodyPerubahanEkuitas(dari, sampai);
+  html += '<div style="page-break-before:always;margin-top:24px"></div>' + bodyArusKas(dari, sampai);
+  html += '<div style="page-break-before:always;margin-top:24px"></div>' + bodyCALK(dari, sampai);
+
+  html += `<div style="page-break-before:always;margin-top:24px"></div>
+    <h2 style="text-align:center">LAPORAN BULANAN KAMPUNG</h2>
     <p style="text-align:center;color:var(--text-mut);font-size:12.5px;margin-bottom:16px">${SETTINGS.namaBumka||'BUMKA'} — Periode ${fmtDateID(dari)} s.d. ${fmtDateID(sampai)}</p>
-    <h3 style="color:var(--primary-dark);margin-bottom:8px">A. Pendapatan per Unit Usaha</h3>
+    <h3 style="color:var(--primary-dark);margin-bottom:8px">6. Pendapatan per Unit Usaha</h3>
     <table style="margin-bottom:14px"><thead><tr><th>No</th><th>Unit Usaha</th><th class="num">Pendapatan</th></tr></thead><tbody>`;
   STATE.unitusaha.forEach((u,i)=>{
     const p = list.filter(t=>t.unit_id===u.id && t.jenis==='masuk').reduce((s,t)=>s+Number(t.jumlah),0);
     html += `<tr><td>${i+1}</td><td>${u.nama}</td><td class="num">${fmtRp(p)}</td></tr>`;
   });
+  const pUmumLK = list.filter(t=>!t.unit_id && t.jenis==='masuk').reduce((s,t)=>s+Number(t.jumlah),0);
+  if(pUmumLK > 0){
+    html += `<tr><td>${STATE.unitusaha.length+1}</td><td>${getUnitNama(null)}</td><td class="num">${fmtRp(pUmumLK)}</td></tr>`;
+  }
   html += `<tr><td colspan="2" style="font-weight:700">TOTAL PENDAPATAN</td><td class="num" style="font-weight:700">${fmtRp(totalPendapatan)}</td></tr></tbody></table>
 
-    <h3 style="color:var(--primary-dark);margin-bottom:8px">B. Pendapatan Bersih Setelah Pajak</h3>
+    <h3 style="color:var(--primary-dark);margin-bottom:8px">7. Pendapatan Bersih Setelah Pajak</h3>
     <table style="margin-bottom:14px"><tbody>
       <tr><td>Total Pendapatan (Omzet)</td><td class="num">${fmtRp(totalPendapatan)}</td></tr>
       <tr><td>Pajak Penghasilan (PPh Final ${SETTINGS.taxRate}% dari omzet)</td><td class="num">(${fmtRp(pajak)})</td></tr>
       <tr><td style="font-weight:700;border-top:1px solid var(--text)">Pendapatan Bersih Setelah Pajak</td><td class="num" style="font-weight:700;border-top:1px solid var(--text)">${fmtRp(pendapatanBersih)}</td></tr>
     </tbody></table>
 
-    <h3 style="color:var(--primary-dark);margin-bottom:8px">C. Rincian Bagi Hasil</h3>
-    <table style="margin-bottom:14px"><thead><tr><th>No</th><th>Peruntukan</th><th class="num">%</th><th class="num">Jumlah</th></tr></thead><tbody>
-      <tr><td>1</td><td>${labelPades()}</td><td class="num">${SETTINGS.padesPercent}%</td><td class="num">${fmtRp(padesRp)}</td></tr>
-      <tr><td>2</td><td>Penguatan Modal</td><td class="num">${SETTINGS.modalPercent}%</td><td class="num">${fmtRp(modalRp)}</td></tr>
-      <tr><td>3</td><td>Insentif Pengurus</td><td class="num">${SETTINGS.insentifPercent}%</td><td class="num">${fmtRp(insentifRp)}</td></tr>
-      <tr><td colspan="2" style="font-weight:700">TOTAL</td><td class="num" style="font-weight:700">${totalPersen}%</td><td class="num" style="font-weight:700">${fmtRp(padesRp+modalRp+insentifRp)}</td></tr>
-    </tbody></table>`;
-  if(Math.round(totalPersen) !== 100){
-    html += `<p style="color:var(--danger);font-size:12px;margin-bottom:14px">⚠ Total persentase bagi hasil (${totalPersen}%) belum 100%. Cek Pengaturan Pajak &amp; Bagi Hasil dan Pengaturan Setoran.</p>`;
+    <h3 style="color:var(--primary-dark);margin-bottom:8px">8. Rincian Bagi Hasil</h3>
+    <table style="margin-bottom:8px"><thead><tr><th>No</th><th>Peruntukan</th><th class="num">%</th><th class="num">Jumlah</th></tr></thead><tbody>
+      <tr><td>1</td><td>Operasional</td><td class="num">${SETTINGS.operasionalPercent||0}%</td><td class="num">${fmtRp(operasionalRp)}</td></tr>
+      <tr><td>2</td><td>ATK</td><td class="num">${SETTINGS.atkPercent||0}%</td><td class="num">${fmtRp(atkRp)}</td></tr>
+      <tr><td>3</td><td>${labelPades()}</td><td class="num">${SETTINGS.padesPercent}% dari sisa</td><td class="num">${fmtRp(padesRp)}</td></tr>
+      <tr><td>4</td><td>Penguatan Modal</td><td class="num">${SETTINGS.modalPercent}% dari sisa</td><td class="num">${fmtRp(modalRp)}</td></tr>
+      <tr><td>5</td><td>Insentif Pengurus</td><td class="num">${SETTINGS.insentifPercent}% dari sisa</td><td class="num">${fmtRp(insentifRp)}</td></tr>
+      <tr><td colspan="3" style="font-weight:700">TOTAL</td><td class="num" style="font-weight:700">${fmtRp(totalSemuaRp)}</td></tr>
+    </tbody></table>
+    <p class="hint" style="margin-bottom:14px">Operasional &amp; ATK dipotong duluan dari Pendapatan Bersih Setelah Pajak. Sisanya (${fmtRp(sisaSetelahOperasionalAtk)}) baru dibagi ke ${labelPades()}, Penguatan Modal, dan Insentif Pengurus.</p>`;
+  if(Math.round(totalPersenSisa) !== 100){
+    html += `<p style="color:var(--danger);font-size:12px;margin-bottom:14px">⚠ Total persentase ${labelPades()}+Penguatan Modal+Insentif Pengurus (${totalPersenSisa}%) belum 100%. Cek Pengaturan Pajak &amp; Bagi Hasil dan Pengaturan Setoran.</p>`;
   }
 
-  html += `<h3 style="color:var(--primary-dark);margin-bottom:8px">D. Rincian Insentif per Jabatan</h3>`;
+  html += `<h3 style="color:var(--primary-dark);margin-bottom:8px">9. Rincian Insentif per Jabatan</h3>`;
   if(STATE.pengurus.length===0){
     html += `<p style="font-size:13px;color:var(--text-mut);margin-bottom:10px">Belum ada data Pengurus. Tambahkan di menu Pengurus untuk melihat rincian per jabatan.</p>`;
   } else {
@@ -3141,7 +3416,10 @@ function renderLaporanKampung(dari, sampai){
       html += `<p style="color:var(--danger);font-size:12px;margin-top:8px">⚠ Total persentase insentif pengurus (${totalPersenInsentif}%) belum 100%. Cek menu Pengurus.</p>`;
     }
   }
-  html += ttdUntukLaporan('laporankampung', sampai);
+  if(!SETTINGS.sembunyikanPengesahan){
+    html += `<h3 style="color:var(--primary-dark);margin:16px 0 8px">10. Pengesahan</h3>`;
+    html += ttdUntukLaporan('laporankampung', sampai);
+  }
   document.getElementById('lapOutput').innerHTML = html;
 }
 
